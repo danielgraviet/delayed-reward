@@ -1,0 +1,16 @@
+{
+  "config": {
+    "episodes": 50,
+    "alpha": 0.1,
+    "gamma": 0.99,
+    "epsilon": 0.1,
+    "seed": 0,
+    "log_every": 25,
+    "delay": 2,
+    "env": "MiniGrid-Empty-8x8-v0"
+  },
+  "n_episodes": 50,
+  "final_window": 25,
+  "final_mean_return": 0.0,
+  "final_mean_steps": 256.0
+}

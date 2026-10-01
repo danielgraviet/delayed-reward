@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from delayed_reward.environments.factory import create_empty_5x5
+from delayed_reward.environments.factory import DEFAULT_ENV_ID, create_empty_env
 from delayed_reward.policies.epsilon_greedy import GreedyPolicy
 from delayed_reward.protocols import QValueStore
 
@@ -24,6 +24,13 @@ def create_run_dir(base: Path | str = "results") -> Path:
     run_dir = root / f"run_{stamp}"
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir
+
+
+def create_delay_dir(run_dir: Path, delay: int) -> Path:
+    """Create ``run_dir/delay_<n>`` for one delay setting's artifacts."""
+    delay_dir = run_dir / f"delay_{delay}"
+    delay_dir.mkdir(parents=True, exist_ok=False)
+    return delay_dir
 
 
 def save_metrics(
@@ -60,11 +67,15 @@ def record_greedy_policy_gif(
     *,
     seed: int,
     output_path: Path,
-    max_steps: int = 100,
+    delay: int = 0,
+    env_id: str = DEFAULT_ENV_ID,
+    max_steps: int = 200,
     frame_duration_ms: int = 200,
 ) -> Path:
     """Roll out the greedy policy once and save frames as an animated GIF."""
-    env = create_empty_5x5(seed=seed, render_mode="rgb_array")
+    env = create_empty_env(
+        env_id=env_id, seed=seed, delay=delay, render_mode="rgb_array"
+    )
     policy = GreedyPolicy()
     frames: list[np.ndarray] = []
 
