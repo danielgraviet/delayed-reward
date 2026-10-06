@@ -1,0 +1,10 @@
+{
+  "onset_threshold": 0.5,
+  "smooth_window": 100,
+  "onset_episode_by_delay": {
+    "0": 2740,
+    "2": 3547,
+    "5": 9075,
+    "10": 4564
+  }
+}

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "gymnasium>=1.0.0",
+    "matplotlib>=3.11.2",
     "minigrid>=3.0.0",
     "numpy>=2.0.0",
     "pillow>=12.3.0",
@@ -17,6 +18,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/delayed_reward"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
 
 [project.scripts]
 delayed-reward = "delayed_reward.__main__:main"

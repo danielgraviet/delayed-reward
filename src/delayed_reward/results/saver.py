@@ -29,8 +29,15 @@ def create_run_dir(base: Path | str = "results") -> Path:
 def create_delay_dir(run_dir: Path, delay: int) -> Path:
     """Create ``run_dir/delay_<n>`` for one delay setting's artifacts."""
     delay_dir = run_dir / f"delay_{delay}"
-    delay_dir.mkdir(parents=True, exist_ok=False)
+    delay_dir.mkdir(parents=True, exist_ok=True)
     return delay_dir
+
+
+def create_trial_dir(delay_dir: Path, trial: int) -> Path:
+    """Create ``delay_dir/trial_<k>`` for one seeded replicate."""
+    trial_dir = delay_dir / f"trial_{trial}"
+    trial_dir.mkdir(parents=True, exist_ok=False)
+    return trial_dir
 
 
 def save_metrics(
