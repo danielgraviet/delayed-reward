@@ -16,12 +16,20 @@ from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
 from delayed_reward.environments.nav_actions import NavActionWrapper
 
 DEFAULT_ENV_ID = "MiniGrid-Empty-10x10-v0"
+RECTANGULAR_ENV_ID = "MiniGrid-Empty-20x8-v0"
 
 if DEFAULT_ENV_ID not in registry:
     register(
         id=DEFAULT_ENV_ID,
         entry_point="minigrid.envs:EmptyEnv",
         kwargs={"size": 10},
+    )
+
+if RECTANGULAR_ENV_ID not in registry:
+    register(
+        id=RECTANGULAR_ENV_ID,
+        entry_point="delayed_reward.environments.rectangular:RectangularEmptyEnv",
+        kwargs={"width": 20, "height": 8},
     )
 
 
