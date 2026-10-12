@@ -77,11 +77,16 @@ def record_greedy_policy_gif(
     delay: int = 0,
     env_id: str = DEFAULT_ENV_ID,
     max_steps: int = 200,
+    episode_max_steps: int | None = None,
     frame_duration_ms: int = 200,
 ) -> Path:
     """Roll out the greedy policy once and save frames as an animated GIF."""
     env = create_empty_env(
-        env_id=env_id, seed=seed, delay=delay, render_mode="rgb_array"
+        env_id=env_id,
+        seed=seed,
+        delay=delay,
+        render_mode="rgb_array",
+        max_steps=episode_max_steps,
     )
     policy = GreedyPolicy()
     frames: list[np.ndarray] = []

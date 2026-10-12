@@ -110,15 +110,6 @@ def learning_onset_episode(
     return int(hits[0])
 
 
-def _pad_stack(series: list[np.ndarray]) -> np.ndarray:
-    """Stack 1D arrays to shape (n_trials, max_len), padding shorter with nan."""
-    max_len = max(s.size for s in series)
-    stacked = np.full((len(series), max_len), np.nan, dtype=np.float64)
-    for i, s in enumerate(series):
-        stacked[i, : s.size] = s
-    return stacked
-
-
 def plot_delay_survival(
     run_dir: Path,
     *,
@@ -126,31 +117,21 @@ def plot_delay_survival(
     smooth_window: int = 100,
     onset_threshold: float = DEFAULT_ONSET_THRESHOLD,
 ) -> Path:
-    """Plot mean±std smoothed returns and onset stats across trials per delay."""
+    """Plot the fraction of trials that learn to solve at each reward delay."""
     metrics = load_delay_trial_metrics(run_dir)
     output = output_path or (run_dir / "delay_survival.png")
+    fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True)
 
-    fig, axes = plt.subplots(
-        2,
-        1,
-        figsize=(10, 8),
-        gridspec_kw={"height_ratios": [3, 1]},
-        constrained_layout=True,
-    )
-    curve_ax, bar_ax = axes
-
+    onset_lists: dict[int, list[int | None]] = {}
     onset_means: dict[int, float | None] = {}
     onset_stds: dict[int, float | None] = {}
-    onset_lists: dict[int, list[int | None]] = {}
     n_trials_by_delay: dict[int, int] = {}
+    pass_counts: dict[int, int] = {}
+    max_episodes = 0
 
     for delay, series in sorted(metrics.items()):
         n_trials_by_delay[delay] = len(series)
-        smoothed_trials = [rolling_mean(s, smooth_window) for s in series]
-        stacked = _pad_stack(smoothed_trials)
-        mean_curve = np.nanmean(stacked, axis=0)
-        std_curve = np.nanstd(stacked, axis=0)
-        episodes = np.arange(mean_curve.size)
+        max_episodes = max(max_episodes, *(s.size for s in series))
 
         onsets = [
             learning_onset_episode(s, window=smooth_window, threshold=onset_threshold)
@@ -158,103 +139,48 @@ def plot_delay_survival(
         ]
         onset_lists[delay] = onsets
         achieved = [o for o in onsets if o is not None]
-        if achieved:
-            onset_means[delay] = float(np.mean(achieved))
-            onset_stds[delay] = float(np.std(achieved)) if len(achieved) > 1 else 0.0
-        else:
-            onset_means[delay] = None
-            onset_stds[delay] = None
-
-        n = len(series)
-        if onset_means[delay] is not None:
-            label = (
-                f"delay={delay} (n={n}, onset "
-                f"{onset_means[delay]:.0f}±{onset_stds[delay]:.0f})"
-            )
-        else:
-            label = f"delay={delay} (n={n}, no onset)"
-
-        (line,) = curve_ax.plot(episodes, mean_curve, label=label, linewidth=1.8)
-        curve_ax.fill_between(
-            episodes,
-            mean_curve - std_curve,
-            mean_curve + std_curve,
-            color=line.get_color(),
-            alpha=0.2,
+        onset_means[delay] = float(np.mean(achieved)) if achieved else None
+        onset_stds[delay] = (
+            float(np.std(achieved)) if len(achieved) > 1 else (0.0 if achieved else None)
         )
-        if onset_means[delay] is not None:
-            onset_x = onset_means[delay]
-            onset_y = float(
-                mean_curve[min(int(round(onset_x)), mean_curve.size - 1)]
-            )
-            curve_ax.axvline(
-                onset_x,
-                color=line.get_color(),
-                linestyle="--",
-                alpha=0.55,
-                linewidth=1.2,
-            )
-            curve_ax.scatter([onset_x], [onset_y], color=line.get_color(), s=36, zorder=5)
-
-    curve_ax.axhline(
-        onset_threshold,
-        color="#333333",
-        linestyle=":",
-        linewidth=1.0,
-        alpha=0.7,
-        label=f"onset threshold={onset_threshold}",
-    )
-    curve_ax.set_title(f"Delay survival — {run_dir.name}")
-    curve_ax.set_xlabel("Episode")
-    curve_ax.set_ylabel(f"Return (rolling mean, w={smooth_window})")
-    curve_ax.legend(loc="lower right", fontsize=9)
-    curve_ax.grid(True, alpha=0.3)
-
-    delays = sorted(onset_means)
-    bar_values = [onset_means[d] if onset_means[d] is not None else 0.0 for d in delays]
-    bar_errs = [onset_stds[d] if onset_stds[d] is not None else 0.0 for d in delays]
-    colors = ["#4C78A8" if onset_means[d] is not None else "#B0B0B0" for d in delays]
-    bars = bar_ax.bar(
-        [str(d) for d in delays],
-        bar_values,
-        yerr=bar_errs,
-        color=colors,
-        capsize=4,
-        error_kw={"ecolor": "#333333", "capthick": 1.0},
-    )
-    for delay, bar in zip(delays, bars, strict=True):
-        mean = onset_means[delay]
-        std = onset_stds[delay]
-        n_ok = sum(o is not None for o in onset_lists[delay])
-        n = n_trials_by_delay[delay]
-        if mean is None:
-            text = f"none\n0/{n}"
+        n_passed = sum(o is not None for o in onsets)
+        pass_counts[delay] = n_passed
+        label = f"Delay {delay}: {n_passed}/{len(series)} passed"
+        passed_at = sorted(o for o in onsets if o is not None)
+        if passed_at:
+            episodes = np.arange(max_episodes + 1)
+            passed_fraction = np.searchsorted(passed_at, episodes, side="right") / len(series)
+            ax.step(episodes, passed_fraction * 100, where="post", label=label, linewidth=2.2)
         else:
-            text = f"{mean:.0f}±{std:.0f}\n{n_ok}/{n}"
-        bar_ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + (std or 0.0),
-            text,
-            ha="center",
-            va="bottom",
-            fontsize=8,
-        )
-    bar_ax.set_xlabel("Delay")
-    bar_ax.set_ylabel("Learning onset episode")
-    bar_ax.set_title(
-        f"Mean±std episodes until rolling mean return ≥ {onset_threshold}"
+            ax.plot([], [], label=label, linewidth=2.2)
+
+    ax.set_title(f"How much reward delay can the learner solve?\n{run_dir.name}")
+    ax.set_xlabel("Training episode")
+    ax.set_ylabel("Trials that have passed (%)")
+    ax.set_xlim(0, max_episodes)
+    ax.set_ylim(0, 105)
+    ax.set_yticks(np.arange(0, 101, 20), labels=[f"{v}%" for v in range(0, 101, 20)])
+    ax.grid(True, alpha=0.3)
+    ax.legend(
+        title=f"Passed = rolling mean return ≥ {onset_threshold} for {smooth_window} episodes",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
     )
-    bar_ax.grid(True, axis="y", alpha=0.3)
 
     summary = {
         "onset_threshold": onset_threshold,
         "smooth_window": smooth_window,
-        "n_trials_by_delay": {str(d): n_trials_by_delay[d] for d in delays},
+        "n_trials_by_delay": {str(d): n_trials_by_delay[d] for d in sorted(metrics)},
         "onset_episodes_by_delay": {
-            str(d): onset_lists[d] for d in delays
+            str(d): onset_lists[d] for d in sorted(metrics)
         },
-        "onset_mean_by_delay": {str(d): onset_means[d] for d in delays},
-        "onset_std_by_delay": {str(d): onset_stds[d] for d in delays},
+        "n_passed_by_delay": {str(d): pass_counts[d] for d in sorted(metrics)},
+        "pass_fraction_by_delay": {
+            str(d): pass_counts[d] / n_trials_by_delay[d] for d in sorted(metrics)
+        },
+        "onset_mean_by_delay": {str(d): onset_means[d] for d in sorted(metrics)},
+        "onset_std_by_delay": {str(d): onset_stds[d] for d in sorted(metrics)},
     }
     (run_dir / "delay_survival.json").write_text(json.dumps(summary, indent=2) + "\n")
 

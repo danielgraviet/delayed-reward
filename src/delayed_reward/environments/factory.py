@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import gymnasium as gym
 import minigrid  # noqa: F401 — registers MiniGrid-* envs
+import numpy as np
+from gymnasium import spaces
+from gymnasium.envs.registration import register, registry
 from minigrid.wrappers import FullyObsWrapper, ReseedWrapper
 
 from delayed_reward.encoding.pose import PoseEncoder
@@ -12,7 +15,14 @@ from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
 from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
 from delayed_reward.environments.nav_actions import NavActionWrapper
 
-DEFAULT_ENV_ID = "MiniGrid-Empty-8x8-v0"
+DEFAULT_ENV_ID = "MiniGrid-Empty-10x10-v0"
+
+if DEFAULT_ENV_ID not in registry:
+    register(
+        id=DEFAULT_ENV_ID,
+        entry_point="minigrid.envs:EmptyEnv",
+        kwargs={"size": 10},
+    )
 
 
 def create_empty_env(
@@ -21,6 +31,7 @@ def create_empty_env(
     seed: int = 0,
     delay: int = 0,
     render_mode: str | None = None,
+    max_steps: int | None = None,
 ) -> MinigridAdapter:
     """Build a fixed Empty Minigrid with optional delayed goal reward.
 
@@ -29,12 +40,74 @@ def create_empty_env(
     delay:
         Steps after goal contact before the success reward is delivered and the
         episode terminates. ``0`` restores the default immediate-reward MDP.
+    max_steps:
+        Episode truncation horizon. ``None`` keeps MiniGrid's default
+        (``4 * size**2``, 400 on Empty-10x10). A pending delayed reward is
+        delivered at truncation, so delays longer than this horizon are cut short.
     """
-    env: gym.Env = gym.make(env_id, render_mode=render_mode)
+    kwargs: dict[str, object] = {"render_mode": render_mode}
+    if max_steps is not None:
+        if max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1, got {max_steps}")
+        kwargs["max_steps"] = max_steps
+    env: gym.Env = gym.make(env_id, **kwargs)
     env = NavActionWrapper(env)
     env = FullyObsWrapper(env)
     env = BinarySuccessRewardWrapper(env)
     env = DelayedRewardWrapper(env, delay=delay)
     env = ReseedWrapper(env, seeds=(seed,))
     return MinigridAdapter(env, encoder=PoseEncoder())
+
+
+class DQNObservationWrapper(gym.ObservationWrapper):
+    """Flatten the fully observed grid and agent pose into a numeric vector."""
+
+    def __init__(self, env: gym.Env) -> None:
+        super().__init__(env)
+        image_space = env.observation_space["image"]  # type: ignore[index]
+        self._image_shape = image_space.shape
+        width, height = int(image_space.shape[0]), int(image_space.shape[1])
+        self.observation_space = spaces.Box(
+            low=0.0,
+            high=255.0,
+            shape=(int(np.prod(image_space.shape)) + 6,),
+            dtype=np.float32,
+        )
+        self._width = width
+        self._height = height
+
+    def observation(self, observation: dict[str, object]) -> np.ndarray:
+        grid = np.asarray(observation["image"], dtype=np.float32).reshape(-1)
+        unwrapped = self.env.unwrapped
+        x, y = (int(value) for value in unwrapped.agent_pos)
+        direction = int(unwrapped.agent_dir)
+        pose = np.zeros(6, dtype=np.float32)
+        pose[0] = x / max(1, self._width - 1)
+        pose[1] = y / max(1, self._height - 1)
+        pose[2 + direction] = 1.0
+        return np.concatenate((grid, pose))
+
+
+def create_empty_dqn_env(
+    *,
+    env_id: str = DEFAULT_ENV_ID,
+    seed: int = 0,
+    delay: int = 0,
+    render_mode: str | None = None,
+    max_steps: int | None = None,
+) -> gym.Env:
+    """Create a Gymnasium MiniGrid env with a flat numeric DQN observation."""
+    kwargs: dict[str, object] = {"render_mode": render_mode}
+    if max_steps is not None:
+        if max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1, got {max_steps}")
+        kwargs["max_steps"] = max_steps
+    env: gym.Env = gym.make(env_id, **kwargs)
+    env = NavActionWrapper(env)
+    env = FullyObsWrapper(env)
+    env = BinarySuccessRewardWrapper(env)
+    env = DelayedRewardWrapper(env, delay=delay)
+    env = ReseedWrapper(env, seeds=(seed,))
+    env = DQNObservationWrapper(env)
+    return env
 

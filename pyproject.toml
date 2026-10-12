@@ -10,6 +10,7 @@ dependencies = [
     "minigrid>=3.0.0",
     "numpy>=2.0.0",
     "pillow>=12.3.0",
+    "stable-baselines3>=2.7.0",
 ]
 
 [build-system]
@@ -26,3 +27,4 @@ dev = [
 
 [project.scripts]
 delayed-reward = "delayed_reward.__main__:main"
+delayed-reward-dqn = "delayed_reward.dqn_experiment:main"

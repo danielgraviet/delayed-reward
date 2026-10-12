@@ -74,6 +74,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--env-id", type=str, default=DEFAULT_ENV_ID)
     parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help=(
+            "Episode truncation horizon. Default is MiniGrid's "
+            "(400 on Empty-10x10). Delayed rewards still pending at "
+            "truncation are delivered immediately."
+        ),
+    )
+    parser.add_argument(
         "--results-dir",
         type=Path,
         default=Path("results"),
@@ -99,6 +109,7 @@ def train_one_trial(
     epsilon: float,
     log_every: int,
     delay_dir: Path,
+    max_steps: int | None = None,
 ) -> Path:
     """Train one (delay, trial) replicate and write artifacts under ``delay_dir``."""
     env_seed = seed
@@ -108,7 +119,9 @@ def train_one_trial(
         f"(env_seed={env_seed}, policy_seed={explore_seed}) ==="
     )
 
-    env = create_empty_env(env_id=env_id, seed=env_seed, delay=delay)
+    env = create_empty_env(
+        env_id=env_id, seed=env_seed, delay=delay, max_steps=max_steps
+    )
     rng = np.random.default_rng(explore_seed)
     policy = EpsilonGreedyPolicy(epsilon=epsilon, rng=rng)
     agent = TabularQLearningAgent(
@@ -136,6 +149,7 @@ def train_one_trial(
         "trial": trial,
         "log_every": log_every,
         "delay": delay,
+        "max_steps": max_steps,
         "env": env_id,
     }
     save_metrics(
@@ -151,6 +165,8 @@ def train_one_trial(
         delay=delay,
         env_id=env_id,
         output_path=trial_dir / "policy.gif",
+        max_steps=max_steps if max_steps is not None else 200,
+        episode_max_steps=max_steps,
     )
 
     if observer.rewards:
@@ -171,6 +187,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("--delay values must be >= 0")
     if args.trials < 1:
         raise SystemExit("--trials must be >= 1")
+    if args.max_steps is not None and args.max_steps < 1:
+        raise SystemExit("--max-steps must be >= 1")
     if not 0.0 <= args.onset_threshold <= 1.0:
         raise SystemExit("--onset-threshold must be in [0, 1]")
 
@@ -201,6 +219,7 @@ def main(argv: list[str] | None = None) -> None:
                 epsilon=args.epsilon,
                 log_every=args.log_every,
                 delay_dir=delay_dir,
+                max_steps=args.max_steps,
             )
 
     plot_path = plot_delay_survival(

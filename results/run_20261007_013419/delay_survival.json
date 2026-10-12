@@ -1,0 +1,68 @@
+{
+  "onset_threshold": 0.5,
+  "smooth_window": 100,
+  "n_trials_by_delay": {
+    "0": 3,
+    "2": 3,
+    "5": 3,
+    "10": 3,
+    "25": 3,
+    "50": 3,
+    "100": 3
+  },
+  "onset_episodes_by_delay": {
+    "0": [
+      4291,
+      null,
+      8456
+    ],
+    "2": [
+      null,
+      null,
+      null
+    ],
+    "5": [
+      null,
+      null,
+      null
+    ],
+    "10": [
+      null,
+      null,
+      null
+    ],
+    "25": [
+      null,
+      null,
+      null
+    ],
+    "50": [
+      null,
+      null,
+      7425
+    ],
+    "100": [
+      null,
+      null,
+      null
+    ]
+  },
+  "onset_mean_by_delay": {
+    "0": 6373.5,
+    "2": null,
+    "5": null,
+    "10": null,
+    "25": null,
+    "50": 7425.0,
+    "100": null
+  },
+  "onset_std_by_delay": {
+    "0": 2082.5,
+    "2": null,
+    "5": null,
+    "10": null,
+    "25": null,
+    "50": 0.0,
+    "100": null
+  }
+}
