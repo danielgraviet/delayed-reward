@@ -1,0 +1,99 @@
+RUN_DIR /home/dtgraviet/Projects/delayed-reward/results/run_20261012_230243 delays=[0, 10, 50, 100] trials=10 pending=40 skipped=0 workers=4 timesteps=250000
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=3 episodes=5386 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_3
+DONE delay=0 trial=3 results/run_20261012_230243/delay_0/trial_3
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=1 episodes=4791 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_1
+DONE delay=0 trial=1 results/run_20261012_230243/delay_0/trial_1
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=0 episodes=7199 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_0
+DONE delay=0 trial=0 results/run_20261012_230243/delay_0/trial_0
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=2 episodes=2585 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_2
+DONE delay=0 trial=2 results/run_20261012_230243/delay_0/trial_2
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=4 episodes=4362 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_4
+DONE delay=0 trial=4 results/run_20261012_230243/delay_0/trial_4
+trial=5 episodes=3724 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_5
+DONE delay=0 trial=5 results/run_20261012_230243/delay_0/trial_5
+trial=7 episodes=6270 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_7
+DONE delay=0 trial=7 results/run_20261012_230243/delay_0/trial_7
+trial=6 episodes=5990 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_6
+DONE delay=0 trial=6 results/run_20261012_230243/delay_0/trial_6
+trial=8 episodes=6574 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_0/trial_8
+DONE delay=0 trial=8 results/run_20261012_230243/delay_0/trial_8
+trial=0 episodes=5183 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_10/trial_0
+DONE delay=10 trial=0 results/run_20261012_230243/delay_10/trial_0
+trial=9 episodes=940 last_100_mean_return=0.830 device=cuda path=results/run_20261012_230243/delay_0/trial_9
+DONE delay=0 trial=9 results/run_20261012_230243/delay_0/trial_9
+trial=1 episodes=5233 last_100_mean_return=0.960 device=cuda path=results/run_20261012_230243/delay_10/trial_1
+DONE delay=10 trial=1 results/run_20261012_230243/delay_10/trial_1
+trial=2 episodes=910 last_100_mean_return=0.970 device=cuda path=results/run_20261012_230243/delay_10/trial_2
+DONE delay=10 trial=2 results/run_20261012_230243/delay_10/trial_2
+trial=5 episodes=4723 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_10/trial_5
+DONE delay=10 trial=5 results/run_20261012_230243/delay_10/trial_5
+trial=4 episodes=4283 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_10/trial_4
+DONE delay=10 trial=4 results/run_20261012_230243/delay_10/trial_4
+trial=3 episodes=2607 last_100_mean_return=0.990 device=cuda path=results/run_20261012_230243/delay_10/trial_3
+DONE delay=10 trial=3 results/run_20261012_230243/delay_10/trial_3
+trial=6 episodes=4643 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_10/trial_6
+DONE delay=10 trial=6 results/run_20261012_230243/delay_10/trial_6
+trial=7 episodes=4871 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_10/trial_7
+DONE delay=10 trial=7 results/run_20261012_230243/delay_10/trial_7
+trial=8 episodes=5100 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_10/trial_8
+DONE delay=10 trial=8 results/run_20261012_230243/delay_10/trial_8
+trial=9 episodes=798 last_100_mean_return=0.830 device=cuda path=results/run_20261012_230243/delay_10/trial_9
+DONE delay=10 trial=9 results/run_20261012_230243/delay_10/trial_9
+trial=0 episodes=831 last_100_mean_return=0.960 device=cuda path=results/run_20261012_230243/delay_50/trial_0
+DONE delay=50 trial=0 results/run_20261012_230243/delay_50/trial_0
+trial=1 episodes=569 last_100_mean_return=0.540 device=cuda path=results/run_20261012_230243/delay_50/trial_1
+DONE delay=50 trial=1 results/run_20261012_230243/delay_50/trial_1
+trial=2 episodes=540 last_100_mean_return=0.800 device=cuda path=results/run_20261012_230243/delay_50/trial_2
+DONE delay=50 trial=2 results/run_20261012_230243/delay_50/trial_2
+trial=3 episodes=480 last_100_mean_return=0.620 device=cuda path=results/run_20261012_230243/delay_50/trial_3
+DONE delay=50 trial=3 results/run_20261012_230243/delay_50/trial_3
+trial=4 episodes=558 last_100_mean_return=0.840 device=cuda path=results/run_20261012_230243/delay_50/trial_4
+DONE delay=50 trial=4 results/run_20261012_230243/delay_50/trial_4
+trial=5 episodes=1632 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_50/trial_5
+DONE delay=50 trial=5 results/run_20261012_230243/delay_50/trial_5
+trial=6 episodes=1117 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_50/trial_6
+DONE delay=50 trial=6 results/run_20261012_230243/delay_50/trial_6
+trial=7 episodes=1547 last_100_mean_return=1.000 device=cuda path=results/run_20261012_230243/delay_50/trial_7
+DONE delay=50 trial=7 results/run_20261012_230243/delay_50/trial_7
+trial=8 episodes=583 last_100_mean_return=0.690 device=cuda path=results/run_20261012_230243/delay_50/trial_8
+DONE delay=50 trial=8 results/run_20261012_230243/delay_50/trial_8
+trial=9 episodes=504 last_100_mean_return=0.630 device=cuda path=results/run_20261012_230243/delay_50/trial_9
+DONE delay=50 trial=9 results/run_20261012_230243/delay_50/trial_9
+trial=1 episodes=517 last_100_mean_return=0.440 device=cuda path=results/run_20261012_230243/delay_100/trial_1
+DONE delay=100 trial=1 results/run_20261012_230243/delay_100/trial_1
+trial=0 episodes=506 last_100_mean_return=0.400 device=cuda path=results/run_20261012_230243/delay_100/trial_0
+DONE delay=100 trial=0 results/run_20261012_230243/delay_100/trial_0
+trial=2 episodes=495 last_100_mean_return=0.650 device=cuda path=results/run_20261012_230243/delay_100/trial_2
+DONE delay=100 trial=2 results/run_20261012_230243/delay_100/trial_2
+trial=3 episodes=538 last_100_mean_return=0.710 device=cuda path=results/run_20261012_230243/delay_100/trial_3
+DONE delay=100 trial=3 results/run_20261012_230243/delay_100/trial_3
+trial=4 episodes=471 last_100_mean_return=0.620 device=cuda path=results/run_20261012_230243/delay_100/trial_4
+DONE delay=100 trial=4 results/run_20261012_230243/delay_100/trial_4
+trial=5 episodes=470 last_100_mean_return=0.510 device=cuda path=results/run_20261012_230243/delay_100/trial_5
+DONE delay=100 trial=5 results/run_20261012_230243/delay_100/trial_5
+trial=6 episodes=458 last_100_mean_return=0.560 device=cuda path=results/run_20261012_230243/delay_100/trial_6
+DONE delay=100 trial=6 results/run_20261012_230243/delay_100/trial_6
+trial=7 episodes=463 last_100_mean_return=0.380 device=cuda path=results/run_20261012_230243/delay_100/trial_7
+DONE delay=100 trial=7 results/run_20261012_230243/delay_100/trial_7
+trial=8 episodes=514 last_100_mean_return=0.480 device=cuda path=results/run_20261012_230243/delay_100/trial_8
+DONE delay=100 trial=8 results/run_20261012_230243/delay_100/trial_8
+trial=9 episodes=488 last_100_mean_return=0.490 device=cuda path=results/run_20261012_230243/delay_100/trial_9
+DONE delay=100 trial=9 results/run_20261012_230243/delay_100/trial_9
+PLOT /home/dtgraviet/Projects/delayed-reward/results/run_20261012_230243/delay_survival.png
+All DQN trials finished under /home/dtgraviet/Projects/delayed-reward/results/run_20261012_230243

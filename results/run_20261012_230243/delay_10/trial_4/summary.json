@@ -1,0 +1,31 @@
+{
+  "config": {
+    "algorithm": "stable-baselines3-dqn",
+    "env": "MiniGrid-Empty-20x8-v0",
+    "delay": 10,
+    "trial": 4,
+    "seed": 4,
+    "total_timesteps": 250000,
+    "max_steps": 640,
+    "observation": "fully-observed encoded grid plus normalized agent pose",
+    "network": [
+      128,
+      128
+    ],
+    "learning_rate": 0.001,
+    "buffer_size": 50000,
+    "learning_starts": 1000,
+    "batch_size": 64,
+    "gamma": 0.99,
+    "train_freq": 4,
+    "target_update_interval": 1000,
+    "exploration_fraction": 0.2,
+    "exploration_initial_eps": 1.0,
+    "exploration_final_eps": 0.05,
+    "device": "cuda"
+  },
+  "n_episodes": 4283,
+  "final_window": 100,
+  "final_mean_return": 1.0,
+  "final_mean_steps": 56.18
+}
