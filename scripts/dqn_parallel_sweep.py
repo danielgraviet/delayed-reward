@@ -52,7 +52,7 @@ def main() -> None:
     parser.add_argument("--delay", type=int, nargs="+", default=[0])
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument("--timesteps", type=int, default=250_000)
+    parser.add_argument("--timesteps", type=int, default=750_000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))

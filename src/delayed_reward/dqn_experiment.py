@@ -92,13 +92,13 @@ def train_trial(
         env,
         policy_kwargs={"net_arch": [128, 128]},
         learning_rate=1e-3,
-        buffer_size=50_000,
+        buffer_size=150_000,
         learning_starts=1_000,
         batch_size=64,
-        gamma=0.99,
+        gamma=0.995,
         train_freq=4,
         target_update_interval=1_000,
-        exploration_fraction=0.2,
+        exploration_fraction=0.4,
         exploration_initial_eps=1.0,
         exploration_final_eps=0.05,
         max_grad_norm=10.0,
@@ -124,13 +124,13 @@ def train_trial(
         "observation": "fully-observed encoded grid plus normalized agent pose",
         "network": [128, 128],
         "learning_rate": 1e-3,
-        "buffer_size": 50_000,
+        "buffer_size": 150_000,
         "learning_starts": 1_000,
         "batch_size": 64,
-        "gamma": 0.99,
+        "gamma": 0.995,
         "train_freq": 4,
         "target_update_interval": 1_000,
-        "exploration_fraction": 0.2,
+        "exploration_fraction": 0.4,
         "exploration_initial_eps": 1.0,
         "exploration_final_eps": 0.05,
         "device": str(model.device),
@@ -213,7 +213,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reward for picking up the key (--env-kind keydoor only)",
     )
     parser.add_argument("--trials", type=int, default=10)
-    parser.add_argument("--timesteps", type=int, default=250_000)
+    parser.add_argument("--timesteps", type=int, default=750_000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
