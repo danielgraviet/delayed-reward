@@ -83,7 +83,7 @@ def main() -> None:
                     "env_kind": args.env_kind,
                     "delay": delay,
                     "trial": trial,
-                    "seed": args.seed,
+                    "seed": args.seed + trial,
                     "total_timesteps": args.timesteps,
                     "max_steps": args.max_steps,
                 }
