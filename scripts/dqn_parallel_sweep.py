@@ -12,7 +12,7 @@ import json
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from delayed_reward.dqn_experiment import train_trial
-from delayed_reward.environments.factory import DEFAULT_ENV_ID
+from delayed_reward.environments.factory import DEFAULT_ENV_ID, KEYDOOR_ENV_ID
 from delayed_reward.results.plotting import plot_delay_survival
 from delayed_reward.results.saver import create_delay_dir, create_run_dir
 
@@ -29,13 +29,26 @@ def _run_trial(task: tuple[argparse.Namespace, Path, int, int]) -> Path:
         delay=delay,
         max_steps=args.max_steps,
         trial_dir=trial_dir,
+        env_kind=args.env_kind,
+        subgoal_reward=args.subgoal_reward,
     )
     return trial_dir
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--env-id", default=DEFAULT_ENV_ID)
+    parser.add_argument("--env-kind", choices=("empty", "keydoor"), default="empty")
+    parser.add_argument(
+        "--env-id",
+        default=None,
+        help=f"Defaults to {DEFAULT_ENV_ID!r} (empty) or {KEYDOOR_ENV_ID!r} (keydoor)",
+    )
+    parser.add_argument(
+        "--subgoal-reward",
+        type=float,
+        default=1.0,
+        help="Reward for picking up the key (--env-kind keydoor only)",
+    )
     parser.add_argument("--delay", type=int, nargs="+", default=[0])
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--workers", type=int, default=4)
@@ -45,6 +58,9 @@ def main() -> None:
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument("--run-dir", type=Path, default=None)
     args = parser.parse_args()
+    args.env_id = args.env_id or (
+        KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID
+    )
     if min(args.trials, args.workers, args.timesteps) < 1:
         raise SystemExit("trials, workers, and timesteps must be >= 1")
     delays = list(dict.fromkeys(args.delay))
@@ -64,12 +80,15 @@ def main() -> None:
                 config = json.loads(summary.read_text()).get("config", {})
                 expected = {
                     "env": args.env_id,
+                    "env_kind": args.env_kind,
                     "delay": delay,
                     "trial": trial,
                     "seed": args.seed,
                     "total_timesteps": args.timesteps,
                     "max_steps": args.max_steps,
                 }
+                if args.env_kind == "keydoor":
+                    expected["subgoal_reward"] = args.subgoal_reward
                 mismatches = {k: (config.get(k), v) for k, v in expected.items() if config.get(k) != v}
                 if mismatches:
                     raise SystemExit(f"refusing to mix settings in {summary}: {mismatches}")
@@ -87,9 +106,9 @@ def main() -> None:
             pending.append((args, run_dir, delay, trial))
 
     print(
-        f"RUN_DIR {run_dir.resolve()} delays={delays} trials={args.trials} "
-        f"pending={len(pending)} skipped={skipped} workers={args.workers} "
-        f"timesteps={args.timesteps}",
+        f"RUN_DIR {run_dir.resolve()} env_kind={args.env_kind} delays={delays} "
+        f"trials={args.trials} pending={len(pending)} skipped={skipped} "
+        f"workers={args.workers} timesteps={args.timesteps}",
         flush=True,
     )
     failures = []

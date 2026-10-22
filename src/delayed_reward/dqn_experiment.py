@@ -11,13 +11,42 @@ from PIL import Image
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import BaseCallback
 
-from delayed_reward.environments.factory import DEFAULT_ENV_ID, create_empty_dqn_env
+from delayed_reward.environments.factory import (
+    DEFAULT_ENV_ID,
+    KEYDOOR_ENV_ID,
+    create_empty_dqn_env,
+    create_keydoor_dqn_env,
+)
 from delayed_reward.results.saver import (
     create_delay_dir,
     create_run_dir,
     create_trial_dir,
     save_metrics,
 )
+
+
+def _make_env(
+    *,
+    env_kind: str,
+    env_id: str,
+    seed: int,
+    delay: int,
+    subgoal_reward: float,
+    render_mode: str | None = None,
+    max_steps: int | None = None,
+) -> gym.Env:
+    if env_kind == "keydoor":
+        return create_keydoor_dqn_env(
+            env_id=env_id,
+            seed=seed,
+            delay=delay,
+            subgoal_reward=subgoal_reward,
+            render_mode=render_mode,
+            max_steps=max_steps,
+        )
+    return create_empty_dqn_env(
+        env_id=env_id, seed=seed, delay=delay, render_mode=render_mode, max_steps=max_steps
+    )
 
 
 class EpisodeMetricsCallback(BaseCallback):
@@ -45,9 +74,16 @@ def train_trial(
     delay: int,
     max_steps: int | None,
     trial_dir: Path,
+    env_kind: str = "empty",
+    subgoal_reward: float = 1.0,
 ) -> None:
-    env = create_empty_dqn_env(
-        env_id=env_id, seed=seed + trial, delay=delay, max_steps=max_steps
+    env = _make_env(
+        env_kind=env_kind,
+        env_id=env_id,
+        seed=seed + trial,
+        delay=delay,
+        subgoal_reward=subgoal_reward,
+        max_steps=max_steps,
     )
     env = gym.wrappers.RecordEpisodeStatistics(env)
     callback = EpisodeMetricsCallback()
@@ -78,7 +114,9 @@ def train_trial(
     config: dict[str, object] = {
         "algorithm": "stable-baselines3-dqn",
         "env": env_id,
+        "env_kind": env_kind,
         "delay": delay,
+        "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
         "trial": trial,
         "seed": seed + trial,
         "total_timesteps": total_timesteps,
@@ -107,9 +145,11 @@ def train_trial(
     model.save(trial_dir / "model")
     _save_policy_gif(
         model,
+        env_kind=env_kind,
         env_id=env_id,
         seed=seed + trial,
         delay=delay,
+        subgoal_reward=subgoal_reward,
         max_steps=max_steps or 200,
         path=trial_dir / "policy.gif",
     )
@@ -125,14 +165,21 @@ def train_trial(
 def _save_policy_gif(
     model: DQN,
     *,
+    env_kind: str,
     env_id: str,
     seed: int,
     delay: int,
+    subgoal_reward: float,
     max_steps: int,
     path: Path,
 ) -> None:
-    env = create_empty_dqn_env(
-        env_id=env_id, seed=seed, delay=delay, render_mode="rgb_array"
+    env = _make_env(
+        env_kind=env_kind,
+        env_id=env_id,
+        seed=seed,
+        delay=delay,
+        subgoal_reward=subgoal_reward,
+        render_mode="rgb_array",
     )
     frames: list[Image.Image] = []
     try:
@@ -152,8 +199,19 @@ def _save_policy_gif(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--env-id", default=DEFAULT_ENV_ID)
+    parser.add_argument("--env-kind", choices=("empty", "keydoor"), default="empty")
+    parser.add_argument(
+        "--env-id",
+        default=None,
+        help=f"Defaults to {DEFAULT_ENV_ID!r} (empty) or {KEYDOOR_ENV_ID!r} (keydoor)",
+    )
     parser.add_argument("--delay", type=int, default=0)
+    parser.add_argument(
+        "--subgoal-reward",
+        type=float,
+        default=1.0,
+        help="Reward for picking up the key (--env-kind keydoor only)",
+    )
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--timesteps", type=int, default=250_000)
     parser.add_argument("--seed", type=int, default=0)
@@ -169,24 +227,27 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("trials and timesteps must be >= 1")
     if args.delay < 0 or (args.max_steps is not None and args.max_steps < 1):
         raise SystemExit("delay must be >= 0 and max-steps must be >= 1")
+    env_id = args.env_id or (KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID)
     run_dir = args.run_dir or create_run_dir(args.results_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     delay_dir = create_delay_dir(run_dir, args.delay)
     print(
         f"RUN_DIR {run_dir.resolve()} trials={args.trials} "
-        f"timesteps={args.timesteps} delay={args.delay}",
+        f"timesteps={args.timesteps} delay={args.delay} env_kind={args.env_kind}",
         flush=True,
     )
     for trial in range(args.trials):
         trial_dir = create_trial_dir(delay_dir, trial)
         train_trial(
             trial=trial,
-            env_id=args.env_id,
+            env_id=env_id,
             seed=args.seed,
             total_timesteps=args.timesteps,
             delay=args.delay,
             max_steps=args.max_steps,
             trial_dir=trial_dir,
+            env_kind=args.env_kind,
+            subgoal_reward=args.subgoal_reward,
         )
 
 

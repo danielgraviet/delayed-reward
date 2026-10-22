@@ -13,10 +13,13 @@ from delayed_reward.encoding.pose import PoseEncoder
 from delayed_reward.environments.adapter import MinigridAdapter
 from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
 from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
+from delayed_reward.environments.keydoor_actions import KeyDoorActionWrapper
 from delayed_reward.environments.nav_actions import NavActionWrapper
+from delayed_reward.environments.subgoal_delayed_reward import SubgoalDelayedRewardWrapper
 
 DEFAULT_ENV_ID = "MiniGrid-Empty-10x10-v0"
 RECTANGULAR_ENV_ID = "MiniGrid-Empty-20x8-v0"
+KEYDOOR_ENV_ID = "MiniGrid-DoorKey-8x8-v0"
 
 if DEFAULT_ENV_ID not in registry:
     register(
@@ -115,6 +118,35 @@ def create_empty_dqn_env(
     env = FullyObsWrapper(env)
     env = BinarySuccessRewardWrapper(env)
     env = DelayedRewardWrapper(env, delay=delay)
+    env = ReseedWrapper(env, seeds=(seed,))
+    env = DQNObservationWrapper(env)
+    return env
+
+
+def create_keydoor_dqn_env(
+    *,
+    env_id: str = KEYDOOR_ENV_ID,
+    seed: int = 0,
+    delay: int = 0,
+    subgoal_reward: float = 1.0,
+    render_mode: str | None = None,
+    max_steps: int | None = None,
+) -> gym.Env:
+    """Create a key-door MiniGrid with a flat numeric DQN observation.
+
+    Only the key-pickup subgoal reward is delayed; reaching the goal always
+    terminates and pays its reward instantly. See ``SubgoalDelayedRewardWrapper``.
+    """
+    kwargs: dict[str, object] = {"render_mode": render_mode}
+    if max_steps is not None:
+        if max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1, got {max_steps}")
+        kwargs["max_steps"] = max_steps
+    env: gym.Env = gym.make(env_id, **kwargs)
+    env = KeyDoorActionWrapper(env)
+    env = FullyObsWrapper(env)
+    env = BinarySuccessRewardWrapper(env)
+    env = SubgoalDelayedRewardWrapper(env, delay=delay, subgoal_reward=subgoal_reward)
     env = ReseedWrapper(env, seeds=(seed,))
     env = DQNObservationWrapper(env)
     return env
