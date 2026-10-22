@@ -10,6 +10,7 @@ from gymnasium.envs.registration import register, registry
 from minigrid.wrappers import FullyObsWrapper, ReseedWrapper
 
 from delayed_reward.encoding.pose import PoseEncoder
+from delayed_reward.environments.action_mask import ActionMaskObservationWrapper
 from delayed_reward.environments.adapter import MinigridAdapter
 from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
 from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
@@ -149,5 +150,6 @@ def create_keydoor_dqn_env(
     env = SubgoalDelayedRewardWrapper(env, delay=delay, subgoal_reward=subgoal_reward)
     env = ReseedWrapper(env, seeds=(seed,))
     env = DQNObservationWrapper(env)
+    env = ActionMaskObservationWrapper(env)
     return env
 

@@ -17,6 +17,7 @@ from delayed_reward.environments.factory import (
     create_empty_dqn_env,
     create_keydoor_dqn_env,
 )
+from delayed_reward.masked_dqn_policy import MaskedDQNPolicy
 from delayed_reward.results.saver import (
     create_delay_dir,
     create_run_dir,
@@ -87,8 +88,9 @@ def train_trial(
     )
     env = gym.wrappers.RecordEpisodeStatistics(env)
     callback = EpisodeMetricsCallback()
+    policy = MaskedDQNPolicy if env_kind == "keydoor" else "MlpPolicy"
     model = DQN(
-        "MlpPolicy",
+        policy,
         env,
         policy_kwargs={"net_arch": [128, 128]},
         learning_rate=1e-3,
@@ -115,6 +117,7 @@ def train_trial(
         "algorithm": "stable-baselines3-dqn",
         "env": env_id,
         "env_kind": env_kind,
+        "action_masking": env_kind == "keydoor",
         "delay": delay,
         "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
         "trial": trial,
@@ -180,6 +183,7 @@ def _save_policy_gif(
         delay=delay,
         subgoal_reward=subgoal_reward,
         render_mode="rgb_array",
+        max_steps=max_steps,
     )
     frames: list[Image.Image] = []
     try:
