@@ -103,9 +103,9 @@ def test_delay_holds_subgoal_reward_then_delivers_after_n_steps() -> None:
     assert goal_terminated is True
 
 
-def test_goal_ends_episode_instantly_even_with_subgoal_delay_still_pending() -> None:
-    # Delay outlives the remaining path to the goal (12 steps after pickup):
-    # the goal must still end the episode on contact, paying out both rewards.
+def test_pending_subgoal_reward_survives_episode_end_and_reset() -> None:
+    # Delay outlives the remaining path to the goal. The goal ends the episode,
+    # but the pending subgoal reward remains scheduled across reset.
     env = make_env(delay=20)
     env.reset()
     outcomes = step_sequence(env, PATH_TO_GOAL_6X6)
@@ -113,10 +113,22 @@ def test_goal_ends_episode_instantly_even_with_subgoal_delay_still_pending() -> 
 
     assert len(outcomes) == len(PATH_TO_GOAL_6X6)
     reward, terminated, truncated, info = outcomes[-1]
-    assert reward == 2.0  # goal (1.0) + the still-pending subgoal reward (1.0)
+    assert reward == 1.0
     assert terminated is True
     assert truncated is False
-    assert info.get("subgoal_reward_delivered") is True
+    assert "subgoal_reward_delivered" not in info
+
+    env.reset()
+    delivered = None
+    while delivered is None:
+        _obs, reward, terminated, truncated, info = env.step(LEFT)
+        if info.get("subgoal_reward_delivered"):
+            delivered = (reward, info)
+        if terminated or truncated:
+            env.reset()
+    env.close()
+    assert delivered[0] == 1.0
+    assert delivered[1]["subgoal_reward_origin_step"] == PICKUP_STEP_INDEX + 1
 
 
 def test_reset_clears_pending_subgoal_state() -> None:
@@ -133,3 +145,30 @@ def test_reset_clears_pending_subgoal_state() -> None:
     assert truncated is False
     assert "subgoal_reached" not in info
     assert "subgoal_reward_delivered" not in info
+
+
+def test_delay_50_releases_at_exact_global_step_across_episode_reset() -> None:
+    delay = 50
+    env = make_env(delay=delay)
+    env.reset()
+    pickup_info = None
+    for action in PATH_TO_GOAL_6X6:
+        _obs, _reward, terminated, truncated, info = env.step(action)
+        if info.get("subgoal_reached"):
+            pickup_info = info
+        if terminated or truncated:
+            break
+    assert pickup_info is not None
+    origin_step = pickup_info["environment_step"]
+
+    release_info = None
+    while release_info is None:
+        if terminated or truncated:
+            env.reset()
+        _obs, _reward, terminated, truncated, info = env.step(LEFT)
+        if info.get("subgoal_reward_delivered"):
+            release_info = info
+            assert _reward == 1.0
+    env.close()
+    assert release_info["environment_step"] == origin_step + delay
+    assert release_info["subgoal_reward_origin_step"] == origin_step

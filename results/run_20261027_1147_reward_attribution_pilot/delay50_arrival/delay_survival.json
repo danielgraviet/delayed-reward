@@ -1,0 +1,26 @@
+{
+  "onset_threshold": 0.5,
+  "smooth_window": 100,
+  "n_trials_by_delay": {
+    "50": 3
+  },
+  "onset_episodes_by_delay": {
+    "50": [
+      0,
+      0,
+      0
+    ]
+  },
+  "n_passed_by_delay": {
+    "50": 3
+  },
+  "pass_fraction_by_delay": {
+    "50": 1.0
+  },
+  "onset_mean_by_delay": {
+    "50": 0.0
+  },
+  "onset_std_by_delay": {
+    "50": 0.0
+  }
+}

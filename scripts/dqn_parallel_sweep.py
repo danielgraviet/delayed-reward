@@ -31,6 +31,7 @@ def _run_trial(task: tuple[argparse.Namespace, Path, int, int]) -> Path:
         trial_dir=trial_dir,
         env_kind=args.env_kind,
         subgoal_reward=args.subgoal_reward,
+        reward_attribution=args.reward_attribution,
     )
     return trial_dir
 
@@ -48,6 +49,12 @@ def main() -> None:
         type=float,
         default=1.0,
         help="Reward for picking up the key (--env-kind keydoor only)",
+    )
+    parser.add_argument(
+        "--reward-attribution",
+        choices=("arrival", "origin"),
+        default="arrival",
+        help="Store delayed key reward on its arrival or pickup transition",
     )
     parser.add_argument("--delay", type=int, nargs="+", default=[0])
     parser.add_argument("--trials", type=int, default=10)
@@ -86,6 +93,7 @@ def main() -> None:
                     "seed": args.seed + trial,
                     "total_timesteps": args.timesteps,
                     "max_steps": args.max_steps,
+                    "reward_attribution": args.reward_attribution,
                 }
                 if args.env_kind == "keydoor":
                     expected["subgoal_reward"] = args.subgoal_reward

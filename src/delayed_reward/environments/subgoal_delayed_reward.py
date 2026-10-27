@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
@@ -20,8 +21,8 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
       (on top of whatever reward that later step already carries).
     - Reaching the goal always terminates on the step it happens, with its own
       (binary) reward delivered instantly, regardless of the subgoal timer.
-    - If the episode ends (terminated or truncated) while the subgoal reward is
-      still pending, it is paid out immediately rather than lost.
+    - Pending rewards remain queued across episode resets and are delivered at
+      their scheduled global environment step.
     """
 
     def __init__(self, env: gym.Env, *, delay: int = 0, subgoal_reward: float = 1.0) -> None:
@@ -31,23 +32,23 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
         self.delay = delay
         self.subgoal_reward = subgoal_reward
         self._picked_up = False
-        self._pending_reward: float | None = None
-        self._steps_remaining: int | None = None
+        self._pending: deque[tuple[int, int, float]] = deque()
+        self._global_step = 0
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[ObsType, dict[str, Any]]:
         self._picked_up = False
-        self._pending_reward = None
-        self._steps_remaining = None
         return self.env.reset(seed=seed, options=options)
 
     def step(
         self, action: ActType
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action)
+        self._global_step += 1
         reward = float(reward)
         info = dict(info)
+        info["environment_step"] = self._global_step
 
         just_picked_up = not self._picked_up and self.env.unwrapped.carrying is not None
         if just_picked_up:
@@ -56,23 +57,18 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
             if self.delay == 0:
                 reward += self.subgoal_reward
                 info["subgoal_reward_delivered"] = True
+                info["subgoal_reward_origin_step"] = self._global_step
+                info["subgoal_reward_amount"] = self.subgoal_reward
             else:
-                self._pending_reward = self.subgoal_reward
-                self._steps_remaining = self.delay
-        elif self._steps_remaining is not None:
-            self._steps_remaining -= 1
-            info["delay_steps_remaining"] = self._steps_remaining
-            if self._steps_remaining <= 0:
-                assert self._pending_reward is not None
-                reward += self._pending_reward
-                info["subgoal_reward_delivered"] = True
-                self._pending_reward = None
-                self._steps_remaining = None
+                self._pending.append(
+                    (self._global_step + self.delay, self._global_step, self.subgoal_reward)
+                )
 
-        if (terminated or truncated) and self._pending_reward is not None:
-            reward += self._pending_reward
+        while self._pending and self._pending[0][0] <= self._global_step:
+            _release_step, origin_step, amount = self._pending.popleft()
+            reward += amount
             info["subgoal_reward_delivered"] = True
-            self._pending_reward = None
-            self._steps_remaining = None
+            info["subgoal_reward_origin_step"] = origin_step
+            info["subgoal_reward_amount"] = float(info.get("subgoal_reward_amount", 0.0)) + amount
 
         return obs, reward, terminated, truncated, info

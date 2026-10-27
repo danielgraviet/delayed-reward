@@ -51,15 +51,39 @@ def _make_env(
 
 
 class EpisodeMetricsCallback(BaseCallback):
-    """Collect completed episode returns and lengths from Gymnasium stats."""
+    """Collect episode metrics and optionally relabel delayed subgoal rewards."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, reward_attribution: str = "arrival") -> None:
         super().__init__()
+        if reward_attribution not in {"arrival", "origin"}:
+            raise ValueError("reward_attribution must be 'arrival' or 'origin'")
+        self.reward_attribution = reward_attribution
         self.rewards: list[float] = []
         self.steps: list[int] = []
+        self._transition_indices: dict[int, int] = {}
 
     def _on_step(self) -> bool:
-        for done, info in zip(self.locals["dones"], self.locals["infos"], strict=True):
+        infos = self.locals["infos"]
+        buffer = self.model.replay_buffer
+        if buffer is not None:
+            current_index = (buffer.pos - 1) % buffer.buffer_size
+            for info in infos:
+                step = info.get("environment_step")
+                if step is not None:
+                    self._transition_indices[int(step)] = current_index
+                    oldest = int(step) - buffer.buffer_size
+                    self._transition_indices = {
+                        key: value for key, value in self._transition_indices.items() if key > oldest
+                    }
+                if self.reward_attribution == "origin" and "subgoal_reward_origin_step" in info:
+                    origin = int(info["subgoal_reward_origin_step"])
+                    origin_index = self._transition_indices.get(origin)
+                    if origin_index is None:
+                        raise RuntimeError(f"origin transition {origin} is no longer in replay")
+                    amount = float(info["subgoal_reward_amount"])
+                    buffer.rewards[current_index, 0] -= amount
+                    buffer.rewards[origin_index, 0] += amount
+        for done, info in zip(self.locals["dones"], infos, strict=True):
             if done and "episode" in info:
                 self.rewards.append(float(info["episode"]["r"]))
                 self.steps.append(int(info["episode"]["l"]))
@@ -77,6 +101,7 @@ def train_trial(
     trial_dir: Path,
     env_kind: str = "empty",
     subgoal_reward: float = 1.0,
+    reward_attribution: str = "arrival",
 ) -> None:
     env = _make_env(
         env_kind=env_kind,
@@ -87,7 +112,7 @@ def train_trial(
         max_steps=max_steps,
     )
     env = gym.wrappers.RecordEpisodeStatistics(env)
-    callback = EpisodeMetricsCallback()
+    callback = EpisodeMetricsCallback(reward_attribution=reward_attribution)
     policy = MaskedDQNPolicy if env_kind == "keydoor" else "MlpPolicy"
     model = DQN(
         policy,
@@ -120,6 +145,7 @@ def train_trial(
         "action_masking": env_kind == "keydoor",
         "delay": delay,
         "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
+        "reward_attribution": reward_attribution,
         "trial": trial,
         "seed": seed + trial,
         "total_timesteps": total_timesteps,
@@ -216,6 +242,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=1.0,
         help="Reward for picking up the key (--env-kind keydoor only)",
     )
+    parser.add_argument(
+        "--reward-attribution",
+        choices=("arrival", "origin"),
+        default="arrival",
+        help="Store delayed key reward on its arrival or pickup transition",
+    )
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--timesteps", type=int, default=750_000)
     parser.add_argument("--seed", type=int, default=0)
@@ -252,6 +284,7 @@ def main(argv: list[str] | None = None) -> None:
             trial_dir=trial_dir,
             env_kind=args.env_kind,
             subgoal_reward=args.subgoal_reward,
+            reward_attribution=args.reward_attribution,
         )
 
 
