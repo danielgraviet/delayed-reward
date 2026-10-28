@@ -18,6 +18,7 @@ from delayed_reward.environments.factory import (
     create_keydoor_dqn_env,
 )
 from delayed_reward.masked_dqn_policy import MaskedDQNPolicy
+from delayed_reward.training.wandb_logging import log_metrics, start_wandb_run
 from delayed_reward.results.saver import (
     create_delay_dir,
     create_run_dir,
@@ -53,7 +54,7 @@ def _make_env(
 class EpisodeMetricsCallback(BaseCallback):
     """Collect episode metrics and optionally relabel delayed subgoal rewards."""
 
-    def __init__(self, *, reward_attribution: str = "arrival") -> None:
+    def __init__(self, *, reward_attribution: str = "arrival", wandb_run=None, log_every: int = 1000) -> None:
         super().__init__()
         if reward_attribution not in {"arrival", "origin"}:
             raise ValueError("reward_attribution must be 'arrival' or 'origin'")
@@ -61,6 +62,8 @@ class EpisodeMetricsCallback(BaseCallback):
         self.rewards: list[float] = []
         self.steps: list[int] = []
         self._transition_indices: dict[int, int] = {}
+        self.wandb_run = wandb_run
+        self.log_every = log_every
 
     def _on_step(self) -> bool:
         infos = self.locals["infos"]
@@ -87,6 +90,20 @@ class EpisodeMetricsCallback(BaseCallback):
             if done and "episode" in info:
                 self.rewards.append(float(info["episode"]["r"]))
                 self.steps.append(int(info["episode"]["l"]))
+                log_metrics(self.wandb_run, {
+                    "episode/return": float(info["episode"]["r"]),
+                    "episode/steps": float(info["episode"]["l"]),
+                    "episode/count": float(len(self.rewards)),
+                }, step=int(self.num_timesteps))
+        if self.num_timesteps % self.log_every == 0:
+            values = self.model.logger.name_to_value
+            metrics = {
+                key.replace("/", "_"): float(value)
+                for key, value in values.items()
+                if key.startswith(("train/", "rollout/")) and np.isscalar(value)
+            }
+            metrics["timesteps"] = float(self.num_timesteps)
+            log_metrics(self.wandb_run, metrics, step=int(self.num_timesteps))
         return True
 
 
@@ -102,6 +119,11 @@ def train_trial(
     env_kind: str = "empty",
     subgoal_reward: float = 1.0,
     reward_attribution: str = "arrival",
+    wandb_enabled: bool = False,
+    wandb_project: str = "delayed-reward",
+    wandb_entity: str | None = None,
+    wandb_group: str | None = None,
+    wandb_log_every: int = 1000,
 ) -> None:
     env = _make_env(
         env_kind=env_kind,
@@ -112,7 +134,21 @@ def train_trial(
         max_steps=max_steps,
     )
     env = gym.wrappers.RecordEpisodeStatistics(env)
-    callback = EpisodeMetricsCallback(reward_attribution=reward_attribution)
+    config: dict[str, object] = {
+        "algorithm": "stable-baselines3-dqn", "env": env_id, "env_kind": env_kind,
+        "delay": delay, "trial": trial, "seed": seed + trial,
+        "total_timesteps": total_timesteps, "max_steps": max_steps,
+        "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
+        "reward_attribution": reward_attribution,
+    }
+    wandb_run = start_wandb_run(
+        enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
+        group=wandb_group, name=f"delay-{delay}-trial-{trial}", config=config,
+        step_metric="timesteps",
+    )
+    callback = EpisodeMetricsCallback(
+        reward_attribution=reward_attribution, wandb_run=wandb_run, log_every=wandb_log_every
+    )
     policy = MaskedDQNPolicy if env_kind == "keydoor" else "MlpPolicy"
     model = DQN(
         policy,
@@ -189,6 +225,8 @@ def train_trial(
         f"device={model.device} path={trial_dir}",
         flush=True,
     )
+    if wandb_run is not None:
+        wandb_run.finish()
 
 
 def _save_policy_gif(
@@ -254,6 +292,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument("--run-dir", type=Path, default=None)
+    parser.add_argument("--wandb", action="store_true", help="Log metrics to Weights & Biases")
+    parser.add_argument("--wandb-project", default="delayed-reward")
+    parser.add_argument("--wandb-entity", default=None)
+    parser.add_argument("--wandb-log-every", type=int, default=1000)
     return parser
 
 
@@ -285,6 +327,9 @@ def main(argv: list[str] | None = None) -> None:
             env_kind=args.env_kind,
             subgoal_reward=args.subgoal_reward,
             reward_attribution=args.reward_attribution,
+            wandb_enabled=args.wandb, wandb_project=args.wandb_project,
+            wandb_entity=args.wandb_entity, wandb_group=run_dir.name,
+            wandb_log_every=args.wandb_log_every,
         )
 
 

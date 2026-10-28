@@ -6,9 +6,9 @@
   },
   "onset_episodes_by_delay": {
     "50": [
-      0,
-      0,
-      0
+      99,
+      99,
+      99
     ]
   },
   "n_passed_by_delay": {
@@ -18,9 +18,28 @@
     "50": 1.0
   },
   "onset_mean_by_delay": {
-    "50": 0.0
+    "50": 99.0
   },
   "onset_std_by_delay": {
+    "50": 0.0
+  },
+  "sustained_onset_episodes_by_delay": {
+    "50": [
+      null,
+      99,
+      99
+    ]
+  },
+  "n_sustained_passed_by_delay": {
+    "50": 2
+  },
+  "sustained_pass_fraction_by_delay": {
+    "50": 0.6666666666666666
+  },
+  "sustained_onset_mean_by_delay": {
+    "50": 99.0
+  },
+  "sustained_onset_std_by_delay": {
     "50": 0.0
   }
 }

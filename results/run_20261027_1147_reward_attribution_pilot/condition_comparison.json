@@ -1,0 +1,86 @@
+{
+  "baseline": {
+    "run_dir": "results/run_20261027_1147_reward_attribution_pilot/baseline",
+    "n_trials": 3,
+    "n_episodes_per_trial": [
+      446,
+      3211,
+      416
+    ],
+    "final_window_mean_return_per_trial": [
+      1.32,
+      2.0,
+      1.44
+    ],
+    "final_window_mean_return": 1.5866666666666667,
+    "final_window_std_return": 0.2963481436119049,
+    "n_crossed_threshold": 3,
+    "n_sustained_above_threshold": 3,
+    "onset_episodes": [
+      99,
+      99,
+      99
+    ],
+    "sustained_onset_episodes": [
+      99,
+      99,
+      99
+    ]
+  },
+  "delay50_arrival": {
+    "run_dir": "results/run_20261027_1147_reward_attribution_pilot/delay50_arrival",
+    "n_trials": 3,
+    "n_episodes_per_trial": [
+      433,
+      465,
+      407
+    ],
+    "final_window_mean_return_per_trial": [
+      1.0,
+      1.02,
+      1.03
+    ],
+    "final_window_mean_return": 1.0166666666666666,
+    "final_window_std_return": 0.012472191289246483,
+    "n_crossed_threshold": 3,
+    "n_sustained_above_threshold": 3,
+    "onset_episodes": [
+      99,
+      99,
+      99
+    ],
+    "sustained_onset_episodes": [
+      99,
+      99,
+      99
+    ]
+  },
+  "delay50_origin": {
+    "run_dir": "results/run_20261027_1147_reward_attribution_pilot/delay50_origin",
+    "n_trials": 3,
+    "n_episodes_per_trial": [
+      402,
+      483,
+      403
+    ],
+    "final_window_mean_return_per_trial": [
+      0.22,
+      1.14,
+      0.63
+    ],
+    "final_window_mean_return": 0.6633333333333332,
+    "final_window_std_return": 0.37632728073077854,
+    "n_crossed_threshold": 3,
+    "n_sustained_above_threshold": 2,
+    "onset_episodes": [
+      99,
+      99,
+      99
+    ],
+    "sustained_onset_episodes": [
+      null,
+      99,
+      99
+    ]
+  }
+}

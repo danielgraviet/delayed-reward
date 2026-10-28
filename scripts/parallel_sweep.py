@@ -40,6 +40,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Existing run directory to resume; completed, matching trials are skipped",
     )
+    parser.add_argument("--wandb", action="store_true", help="Log each trial to Weights & Biases")
+    parser.add_argument("--wandb-project", default="delayed-reward")
+    parser.add_argument("--wandb-entity", default=None)
     return parser
 
 
@@ -72,6 +75,10 @@ def _run_trial(task: tuple[argparse.Namespace, Path, int, int]) -> Path:
         log_every=args.log_every,
         delay_dir=create_delay_dir(run_dir, delay),
         max_steps=args.max_steps,
+        wandb_enabled=args.wandb,
+        wandb_project=args.wandb_project,
+        wandb_entity=args.wandb_entity,
+        wandb_group=run_dir.name,
     )
 
 

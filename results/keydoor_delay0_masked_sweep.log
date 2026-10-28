@@ -1,0 +1,43 @@
+RUN_DIR /home/dtgraviet/Projects/delayed-reward/results/run_20261022_163907 env_kind=keydoor delays=[0] trials=10 pending=10 skipped=0 workers=6 timesteps=750000
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=2 episodes=1743 last_100_mean_return=1.890 device=cuda path=results/run_20261022_163907/delay_0/trial_2
+DONE delay=0 trial=2 results/run_20261022_163907/delay_0/trial_2
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=1 episodes=21060 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_1
+DONE delay=0 trial=1 results/run_20261022_163907/delay_0/trial_1
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=3 episodes=7380 last_100_mean_return=1.920 device=cuda path=results/run_20261022_163907/delay_0/trial_3
+DONE delay=0 trial=3 results/run_20261022_163907/delay_0/trial_3
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=0 episodes=23832 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_0
+DONE delay=0 trial=0 results/run_20261022_163907/delay_0/trial_0
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=4 episodes=14046 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_4
+DONE delay=0 trial=4 results/run_20261022_163907/delay_0/trial_4
+trial=5 episodes=24337 last_100_mean_return=1.660 device=cuda path=results/run_20261022_163907/delay_0/trial_5
+DONE delay=0 trial=5 results/run_20261022_163907/delay_0/trial_5
+trial=8 episodes=15860 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_8
+DONE delay=0 trial=8 results/run_20261022_163907/delay_0/trial_8
+trial=6 episodes=40748 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_6
+DONE delay=0 trial=6 results/run_20261022_163907/delay_0/trial_6
+trial=7 episodes=14515 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_7
+DONE delay=0 trial=7 results/run_20261022_163907/delay_0/trial_7
+trial=9 episodes=21518 last_100_mean_return=2.000 device=cuda path=results/run_20261022_163907/delay_0/trial_9
+DONE delay=0 trial=9 results/run_20261022_163907/delay_0/trial_9
+PLOT /home/dtgraviet/Projects/delayed-reward/results/run_20261022_163907/delay_survival.png
+All DQN trials finished under /home/dtgraviet/Projects/delayed-reward/results/run_20261022_163907

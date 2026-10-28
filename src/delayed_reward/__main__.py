@@ -23,6 +23,7 @@ from delayed_reward.results.saver import (
 )
 from delayed_reward.training.observers import LoggingObserver
 from delayed_reward.training.trainer import Trainer
+from delayed_reward.training.wandb_logging import start_wandb_run
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -55,6 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--log-every", type=int, default=100)
+    parser.add_argument("--wandb", action="store_true", help="Log metrics to Weights & Biases")
+    parser.add_argument("--wandb-project", default="delayed-reward")
+    parser.add_argument("--wandb-entity", default=None)
     parser.add_argument(
         "--delay",
         type=int,
@@ -110,6 +114,10 @@ def train_one_trial(
     log_every: int,
     delay_dir: Path,
     max_steps: int | None = None,
+    wandb_enabled: bool = False,
+    wandb_project: str = "delayed-reward",
+    wandb_entity: str | None = None,
+    wandb_group: str | None = None,
 ) -> Path:
     """Train one (delay, trial) replicate and write artifacts under ``delay_dir``."""
     env_seed = seed
@@ -130,7 +138,18 @@ def train_one_trial(
         alpha=alpha,
         gamma=gamma,
     )
-    observer = LoggingObserver(log_every=log_every)
+    config = {
+        "episodes": episodes, "alpha": alpha, "gamma": gamma, "epsilon": epsilon,
+        "env_seed": env_seed, "policy_seed": explore_seed, "trial": trial,
+        "log_every": log_every, "delay": delay, "max_steps": max_steps, "env": env_id,
+        "algorithm": "tabular-q-learning",
+    }
+    wandb_run = start_wandb_run(
+        enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
+        group=wandb_group, name=f"delay-{delay}-trial-{trial}", config=config,
+        step_metric="episode",
+    )
+    observer = LoggingObserver(log_every=log_every, wandb_run=wandb_run)
     trainer = Trainer(env, agent, observers=[observer])
 
     try:
@@ -139,19 +158,6 @@ def train_one_trial(
         env.close()
 
     trial_dir = create_trial_dir(delay_dir, trial)
-    config = {
-        "episodes": episodes,
-        "alpha": alpha,
-        "gamma": gamma,
-        "epsilon": epsilon,
-        "env_seed": env_seed,
-        "policy_seed": explore_seed,
-        "trial": trial,
-        "log_every": log_every,
-        "delay": delay,
-        "max_steps": max_steps,
-        "env": env_id,
-    }
     save_metrics(
         trial_dir,
         rewards=observer.rewards,
@@ -177,6 +183,8 @@ def train_one_trial(
         )
     print(f"Saved to {trial_dir.resolve()}")
     print(f"Policy GIF: {gif_path.resolve()}")
+    if wandb_run is not None:
+        wandb_run.finish()
     return trial_dir
 
 
@@ -220,6 +228,10 @@ def main(argv: list[str] | None = None) -> None:
                 log_every=args.log_every,
                 delay_dir=delay_dir,
                 max_steps=args.max_steps,
+                wandb_enabled=args.wandb,
+                wandb_project=args.wandb_project,
+                wandb_entity=args.wandb_entity,
+                wandb_group=run_dir.name,
             )
 
     plot_path = plot_delay_survival(

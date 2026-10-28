@@ -32,6 +32,11 @@ def _run_trial(task: tuple[argparse.Namespace, Path, int, int]) -> Path:
         env_kind=args.env_kind,
         subgoal_reward=args.subgoal_reward,
         reward_attribution=args.reward_attribution,
+        wandb_enabled=args.wandb,
+        wandb_project=args.wandb_project,
+        wandb_entity=args.wandb_entity,
+        wandb_group=run_dir.name,
+        wandb_log_every=args.wandb_log_every,
     )
     return trial_dir
 
@@ -64,6 +69,10 @@ def main() -> None:
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument("--run-dir", type=Path, default=None)
+    parser.add_argument("--wandb", action="store_true", help="Log metrics to Weights & Biases")
+    parser.add_argument("--wandb-project", default="delayed-reward")
+    parser.add_argument("--wandb-entity", default=None)
+    parser.add_argument("--wandb-log-every", type=int, default=1000)
     args = parser.parse_args()
     args.env_id = args.env_id or (
         KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID
