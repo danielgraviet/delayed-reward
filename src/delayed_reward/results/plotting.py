@@ -24,11 +24,16 @@ def latest_run_dir(results_root: Path | str = "results") -> Path:
     return runs[0]
 
 
-def _iter_trial_csvs(run_dir: Path) -> dict[int, list[Path]]:
-    """Map each ``delay_*`` subdirectory to its ``metrics.csv`` paths.
+def _iter_trial_csvs(
+    run_dir: Path, *, filename: str = "metrics.csv", required: bool = True
+) -> dict[int, list[Path]]:
+    """Map each ``delay_*`` subdirectory to its ``<filename>`` paths.
 
-    Supports ``delay_*/trial_*/metrics.csv`` (multi-trial) and
-    ``delay_*/metrics.csv`` (legacy single-trial).
+    Supports ``delay_*/trial_*/<filename>`` (multi-trial) and
+    ``delay_*/<filename>`` (legacy single-trial). With ``required=False``,
+    missing files are silently skipped instead of raising -- useful for
+    optional per-trial outputs like ``eval_metrics.csv`` that older runs
+    won't have.
     """
     by_delay: dict[int, list[Path]] = {}
     for child in sorted(run_dir.iterdir()):
@@ -42,16 +47,16 @@ def _iter_trial_csvs(run_dir: Path) -> dict[int, list[Path]]:
         )
         if trial_dirs:
             paths = [
-                p / "metrics.csv" for p in trial_dirs if (p / "metrics.csv").exists()
+                p / filename for p in trial_dirs if (p / filename).exists()
             ]
         else:
-            csv_path = child / "metrics.csv"
+            csv_path = child / filename
             paths = [csv_path] if csv_path.exists() else []
         if paths:
             by_delay[delay] = paths
-    if not by_delay:
+    if not by_delay and required:
         raise FileNotFoundError(
-            f"No delay_*/metrics.csv or delay_*/trial_*/metrics.csv under {run_dir}"
+            f"No delay_*/{filename} or delay_*/trial_*/{filename} under {run_dir}"
         )
     return by_delay
 
@@ -90,6 +95,33 @@ def load_delay_trial_tables(
     return {
         delay: [_read_table(p) for p in paths]
         for delay, paths in _iter_trial_csvs(run_dir).items()
+    }
+
+
+def _read_eval_table(csv_path: Path) -> tuple[np.ndarray, np.ndarray]:
+    """Read ``(train_episode, return)`` columns from one trial's ``eval_metrics.csv``."""
+    episodes: list[float] = []
+    returns: list[float] = []
+    with csv_path.open() as fh:
+        for row in csv.DictReader(fh):
+            episodes.append(float(row["train_episode"]))
+            returns.append(float(row["return"]))
+    return np.asarray(episodes, dtype=np.float64), np.asarray(returns, dtype=np.float64)
+
+
+def load_delay_trial_eval_tables(
+    run_dir: Path,
+) -> dict[int, list[tuple[np.ndarray, np.ndarray]]]:
+    """Load exploration-off eval ``(train_episode, return)`` per trial, by delay.
+
+    Returns an empty dict if no trial has ``eval_metrics.csv`` (e.g. a run
+    from before evaluation rollouts were added).
+    """
+    return {
+        delay: [_read_eval_table(p) for p in paths]
+        for delay, paths in _iter_trial_csvs(
+            run_dir, filename="eval_metrics.csv", required=False
+        ).items()
     }
 
 
@@ -381,6 +413,7 @@ def _plot_aggregate(
     *,
     color: str,
     label: str,
+    x: np.ndarray | None = None,
 ) -> None:
     """Plot a mean curve, solid+shaded while every trial is still running,
     dash-dot and unshaded once shorter trials have ended and the mean is
@@ -389,8 +422,11 @@ def _plot_aggregate(
     under 500), so a flat tail at the far right is often just one trial,
     not a converged average across all of them -- this makes that visible
     instead of silently averaging it away.
+
+    ``x`` defaults to the episode index (0..len-1); pass explicit x-values
+    when the samples aren't one-per-episode (e.g. sparse eval checkpoints).
     """
-    episodes = np.arange(mean.size)
+    episodes = x if x is not None else np.arange(mean.size)
     full = counts >= n_trials
     full_mean = np.where(full, mean, np.nan)
     ax.plot(episodes, full_mean, color=color, linewidth=2.0, label=label)
@@ -471,6 +507,63 @@ def plot_episode_length(
     ax.grid(True, alpha=0.3)
     ax.legend(
         title="Shaded band = ±1 std across trials\nDash-dot tail = fewer trials still running (shorter ones ended)",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
+    )
+    fig.savefig(output, dpi=150)
+    plt.close(fig)
+    return output
+
+
+def plot_eval_curve(
+    run_dir: Path,
+    *,
+    output_path: Path | None = None,
+    onset_threshold: float = DEFAULT_ONSET_THRESHOLD,
+) -> Path | None:
+    """Plot exploration-off evaluation return vs. training episode, per delay.
+
+    The training-return curves (``plot_learning_curves``) are taken while
+    the agent is still exploring (random actions by design, forever --
+    see ``exploration_final_eps``), so they understate and add noise to
+    what the policy has actually learned. These points instead come from
+    periodic rollouts with randomness turned off entirely, so they show
+    the policy's real performance at each checkpoint.
+
+    Returns ``None`` and writes nothing if the run has no
+    ``eval_metrics.csv`` files (e.g. a run from before evaluation rollouts
+    were added, or trained with ``--eval-every-episodes 0``).
+    """
+    eval_tables = load_delay_trial_eval_tables(run_dir)
+    if not eval_tables:
+        return None
+    output = output_path or (run_dir / "eval_curve.png")
+    fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True)
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    for color, (delay, trials) in zip(colors, sorted(eval_tables.items())):
+        returns_series = [r for _episodes, r in trials]
+        stacked = _stack_ragged(returns_series)
+        counts = np.sum(~np.isnan(stacked), axis=0)
+        mean = np.nanmean(stacked, axis=0)
+        with np.errstate(invalid="ignore"):
+            std = np.nanstd(stacked, axis=0)
+        std = np.where(counts >= 2, std, np.nan)
+        longest_episodes = max(trials, key=lambda t: t[0].size)[0]
+        x = longest_episodes[: mean.size]
+        _plot_aggregate(
+            ax, mean, std, counts, len(trials), color=color,
+            label=f"Delay {delay} (n={len(trials)})", x=x,
+        )
+
+    ax.axhline(onset_threshold, color="gray", linestyle=":", linewidth=1.2, label=f"onset threshold ({onset_threshold})")
+    ax.set_title(f"Exploration-off evaluation return over training\n{run_dir.name}")
+    ax.set_xlabel("Training episode")
+    ax.set_ylabel("Evaluation return (greedy policy, no exploration)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(
+        title="Shaded band = ±1 std across trials\nDash-dot tail = fewer trials still running",
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
         borderaxespad=0,

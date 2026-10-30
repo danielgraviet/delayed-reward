@@ -14,7 +14,6 @@ def start_wandb_run(
     name: str,
     group: str | None = None,
     entity: str | None = None,
-    step_metric: str | None = None,
 ) -> Any | None:
     if not enabled:
         return None
@@ -30,9 +29,6 @@ def start_wandb_run(
         config=dict(config),
         reinit="finish_previous",
     )
-    if step_metric:
-        run.define_metric(step_metric)
-        run.define_metric("*", step_metric=step_metric)
     return run
 
 

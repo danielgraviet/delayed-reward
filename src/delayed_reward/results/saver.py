@@ -69,6 +69,28 @@ def save_metrics(
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 
 
+def save_eval_metrics(
+    run_dir: Path,
+    *,
+    train_episodes: Sequence[int],
+    train_timesteps: Sequence[int],
+    returns: Sequence[float],
+    steps: Sequence[float],
+) -> None:
+    """Write periodic exploration-off evaluation results to ``eval_metrics.csv``.
+
+    Unlike ``metrics.csv`` (one row per training episode, taken while the
+    agent is still exploring), this is one row per evaluation checkpoint:
+    how the greedy policy performed with randomness turned off.
+    """
+    metrics_path = run_dir / "eval_metrics.csv"
+    with metrics_path.open("w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["train_episode", "train_timestep", "return", "steps"])
+        for row in zip(train_episodes, train_timesteps, returns, steps, strict=True):
+            writer.writerow(row)
+
+
 def record_greedy_policy_gif(
     q_store: QValueStore,
     *,

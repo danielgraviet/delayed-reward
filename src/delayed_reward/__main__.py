@@ -147,7 +147,6 @@ def train_one_trial(
     wandb_run = start_wandb_run(
         enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
         group=wandb_group, name=f"delay-{delay}-trial-{trial}", config=config,
-        step_metric="episode",
     )
     observer = LoggingObserver(log_every=log_every, wandb_run=wandb_run)
     trainer = Trainer(env, agent, observers=[observer])

@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-import sys
-import json
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -37,6 +37,7 @@ def _run_trial(task: tuple[argparse.Namespace, Path, int, int]) -> Path:
         wandb_entity=args.wandb_entity,
         wandb_group=run_dir.name,
         wandb_log_every=args.wandb_log_every,
+        eval_every_episodes=args.eval_every_episodes or None,
     )
     return trial_dir
 
@@ -52,7 +53,7 @@ def main() -> None:
     parser.add_argument(
         "--subgoal-reward",
         type=float,
-        default=1.0,
+        default=0.3,
         help="Reward for picking up the key (--env-kind keydoor only)",
     )
     parser.add_argument(
@@ -73,6 +74,8 @@ def main() -> None:
     parser.add_argument("--wandb-project", default="delayed-reward")
     parser.add_argument("--wandb-entity", default=None)
     parser.add_argument("--wandb-log-every", type=int, default=1000)
+    parser.add_argument("--eval-every-episodes", type=int, default=20, help=("Run a deterministic (exploration-off) evaluation episode every N completed training episodes. Pass 0 to disable."))
+    
     args = parser.parse_args()
     args.env_id = args.env_id or (
         KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID

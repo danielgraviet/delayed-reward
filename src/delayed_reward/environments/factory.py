@@ -21,6 +21,8 @@ from delayed_reward.environments.subgoal_delayed_reward import SubgoalDelayedRew
 DEFAULT_ENV_ID = "MiniGrid-Empty-10x10-v0"
 RECTANGULAR_ENV_ID = "MiniGrid-Empty-20x8-v0"
 KEYDOOR_ENV_ID = "MiniGrid-DoorKey-8x8-v0"
+KEYDOOR_DISTRACTOR_ENV_ID = "MiniGrid-DoorKey-8x8-Distractors-v0"
+HALLWAY_KEYDOOR_ENV_ID = "MiniGrid-DoorKey-Hallway-20x6-v0"
 
 if DEFAULT_ENV_ID not in registry:
     register(
@@ -34,6 +36,24 @@ if RECTANGULAR_ENV_ID not in registry:
         id=RECTANGULAR_ENV_ID,
         entry_point="delayed_reward.environments.rectangular:RectangularEmptyEnv",
         kwargs={"width": 20, "height": 8},
+    )
+
+if HALLWAY_KEYDOOR_ENV_ID not in registry:
+    register(
+        id=HALLWAY_KEYDOOR_ENV_ID,
+        entry_point="delayed_reward.environments.rectangular:RectangularDoorKeyEnv",
+        kwargs={"width": 20, "height": 6},
+    )
+
+# KEYDOOR_ENV_ID is MiniGrid's own built-in DoorKeyEnv, which doesn't accept
+# num_distractors. This variant reproduces its 8x8 layout through our
+# RectangularDoorKeyEnv so distractor robustness can be checked against the
+# same room size the default keydoor training uses.
+if KEYDOOR_DISTRACTOR_ENV_ID not in registry:
+    register(
+        id=KEYDOOR_DISTRACTOR_ENV_ID,
+        entry_point="delayed_reward.environments.rectangular:RectangularDoorKeyEnv",
+        kwargs={"width": 8, "height": 8},
     )
 
 
@@ -132,17 +152,27 @@ def create_keydoor_dqn_env(
     subgoal_reward: float = 1.0,
     render_mode: str | None = None,
     max_steps: int | None = None,
+    num_distractors: int = 0,
 ) -> gym.Env:
     """Create a key-door MiniGrid with a flat numeric DQN observation.
 
     Only the key-pickup subgoal reward is delayed; reaching the goal always
     terminates and pays its reward instantly. See ``SubgoalDelayedRewardWrapper``.
+
+    ``num_distractors`` scatters that many cosmetic, non-interactive colored
+    tiles on the agent's side of the room (see ``environments.distractors``)
+    to probe robustness to irrelevant visual clutter. Only ``env_id``s backed
+    by ``RectangularDoorKeyEnv`` (e.g. ``KEYDOOR_DISTRACTOR_ENV_ID`` or
+    ``HALLWAY_KEYDOOR_ENV_ID``) accept it; passing a nonzero value with
+    MiniGrid's own built-in ``KEYDOOR_ENV_ID`` raises a ``TypeError``.
     """
     kwargs: dict[str, object] = {"render_mode": render_mode}
     if max_steps is not None:
         if max_steps < 1:
             raise ValueError(f"max_steps must be >= 1, got {max_steps}")
         kwargs["max_steps"] = max_steps
+    if num_distractors:
+        kwargs["num_distractors"] = num_distractors
     env: gym.Env = gym.make(env_id, **kwargs)
     env = KeyDoorActionWrapper(env)
     env = FullyObsWrapper(env)

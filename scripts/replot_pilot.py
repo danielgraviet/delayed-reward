@@ -25,6 +25,7 @@ from delayed_reward.results.plotting import (
     plot_condition_comparison,
     plot_delay_survival,
     plot_episode_length,
+    plot_eval_curve,
     plot_learning_curves,
 )
 
@@ -37,6 +38,11 @@ def _replot_run_dir(run_dir: Path, *, smooth_window: int, onset_threshold: float
     print(f"  delay_survival  -> {plot_delay_survival(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold).resolve()}")
     print(f"  learning_curves -> {plot_learning_curves(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold).resolve()}")
     print(f"  episode_length  -> {plot_episode_length(run_dir, smooth_window=smooth_window).resolve()}")
+    eval_curve_path = plot_eval_curve(run_dir, onset_threshold=onset_threshold)
+    if eval_curve_path is not None:
+        print(f"  eval_curve      -> {eval_curve_path.resolve()}")
+    else:
+        print("  eval_curve      -> skipped (no eval_metrics.csv in this run)")
 
 
 def main() -> None:

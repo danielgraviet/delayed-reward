@@ -23,6 +23,7 @@ from delayed_reward.results.saver import (
     create_delay_dir,
     create_run_dir,
     create_trial_dir,
+    save_eval_metrics,
     save_metrics,
 )
 
@@ -67,6 +68,7 @@ class EpisodeMetricsCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         infos = self.locals["infos"]
+        metrics: dict[str, float] = {}
         buffer = self.model.replay_buffer
         if buffer is not None:
             current_index = (buffer.pos - 1) % buffer.buffer_size
@@ -90,20 +92,98 @@ class EpisodeMetricsCallback(BaseCallback):
             if done and "episode" in info:
                 self.rewards.append(float(info["episode"]["r"]))
                 self.steps.append(int(info["episode"]["l"]))
-                log_metrics(self.wandb_run, {
+                metrics.update({
                     "episode/return": float(info["episode"]["r"]),
                     "episode/steps": float(info["episode"]["l"]),
                     "episode/count": float(len(self.rewards)),
-                }, step=int(self.num_timesteps))
+                })
         if self.num_timesteps % self.log_every == 0:
             values = self.model.logger.name_to_value
-            metrics = {
+            metrics.update({
                 key.replace("/", "_"): float(value)
                 for key, value in values.items()
                 if key.startswith(("train/", "rollout/")) and np.isscalar(value)
-            }
+            })
             metrics["timesteps"] = float(self.num_timesteps)
+        if metrics:
             log_metrics(self.wandb_run, metrics, step=int(self.num_timesteps))
+        return True
+
+
+class GreedyEvalCallback(BaseCallback):
+    """Periodically run the current policy with exploration turned off.
+
+    Training episodes mix in epsilon-random actions by design (see
+    ``exploration_final_eps`` below -- it never reaches 0), so even the
+    training return curve is noisier than the policy actually is. This
+    callback separately asks "how good is the greedy policy right now" by
+    rolling out ``n_eval_episodes`` episodes with ``deterministic=True`` and
+    no exploration, every ``eval_every_episodes`` completed training
+    episodes.
+
+    The environment is reseeded to the same fixed layout every episode (see
+    ``ReseedWrapper`` in ``environments/factory.py``), so a greedy policy's
+    rollout is itself deterministic -- there's no maze-layout or start-state
+    randomness left once exploration is off. That's why ``n_eval_episodes``
+    defaults to 1: running it more times would just repeat the identical
+    trajectory. The parameter exists in case a future environment variant
+    randomizes the layout per episode, where repeated eval rollouts would
+    actually differ and averaging them would matter.
+    """
+
+    def __init__(
+        self,
+        *,
+        eval_env: gym.Env,
+        eval_every_episodes: int,
+        max_steps: int,
+        n_eval_episodes: int = 1,
+    ) -> None:
+        super().__init__()
+        if eval_every_episodes < 1:
+            raise ValueError("eval_every_episodes must be >= 1")
+        if n_eval_episodes < 1:
+            raise ValueError("n_eval_episodes must be >= 1")
+        self.eval_env = eval_env
+        self.eval_every_episodes = eval_every_episodes
+        self.max_steps = max_steps
+        self.n_eval_episodes = n_eval_episodes
+        self._train_episode_count = 0
+        self.eval_train_episodes: list[int] = []
+        self.eval_timesteps: list[int] = []
+        self.eval_returns: list[float] = []
+        self.eval_steps: list[float] = []
+
+    def _run_eval(self) -> tuple[float, float]:
+        returns: list[float] = []
+        lengths: list[int] = []
+        for _ in range(self.n_eval_episodes):
+            observation, _info = self.eval_env.reset()
+            total_reward = 0.0
+            length = 0
+            for _ in range(self.max_steps):
+                action, _ = self.model.predict(observation, deterministic=True)
+                observation, reward, terminated, truncated, _info = self.eval_env.step(
+                    int(action)
+                )
+                total_reward += float(reward)
+                length += 1
+                if terminated or truncated:
+                    break
+            returns.append(total_reward)
+            lengths.append(length)
+        return float(np.mean(returns)), float(np.mean(lengths))
+
+    def _on_step(self) -> bool:
+        for done, info in zip(self.locals["dones"], self.locals["infos"], strict=True):
+            if done and "episode" in info:
+                self._train_episode_count += 1
+                if self._train_episode_count % self.eval_every_episodes == 0:
+                    eval_return, eval_length = self._run_eval()
+                    self.eval_train_episodes.append(self._train_episode_count)
+                    self.eval_timesteps.append(int(self.num_timesteps))
+                    self.eval_returns.append(eval_return)
+                    self.eval_steps.append(eval_length)
         return True
 
 
@@ -124,7 +204,12 @@ def train_trial(
     wandb_entity: str | None = None,
     wandb_group: str | None = None,
     wandb_log_every: int = 1000,
+    eval_every_episodes: int | None = 20,
 ) -> None:
+    if wandb_log_every < 1:
+        raise ValueError("wandb_log_every must be >= 1")
+    if eval_every_episodes is not None and eval_every_episodes < 1:
+        raise ValueError("eval_every_episodes must be >= 1 or None")
     env = _make_env(
         env_kind=env_kind,
         env_id=env_id,
@@ -144,11 +229,27 @@ def train_trial(
     wandb_run = start_wandb_run(
         enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
         group=wandb_group, name=f"delay-{delay}-trial-{trial}", config=config,
-        step_metric="timesteps",
     )
     callback = EpisodeMetricsCallback(
         reward_attribution=reward_attribution, wandb_run=wandb_run, log_every=wandb_log_every
     )
+    callbacks: list[BaseCallback] = [callback]
+    eval_callback: GreedyEvalCallback | None = None
+    if eval_every_episodes is not None:
+        eval_env = _make_env(
+            env_kind=env_kind,
+            env_id=env_id,
+            seed=seed + trial,
+            delay=delay,
+            subgoal_reward=subgoal_reward,
+            max_steps=max_steps,
+        )
+        eval_callback = GreedyEvalCallback(
+            eval_env=eval_env,
+            eval_every_episodes=eval_every_episodes,
+            max_steps=max_steps or 2000,
+        )
+        callbacks.append(eval_callback)
     policy = MaskedDQNPolicy if env_kind == "keydoor" else "MlpPolicy"
     model = DQN(
         policy,
@@ -170,9 +271,11 @@ def train_trial(
         verbose=0,
     )
     try:
-        model.learn(total_timesteps=total_timesteps, callback=callback)
+        model.learn(total_timesteps=total_timesteps, callback=callbacks)
     finally:
         env.close()
+        if eval_callback is not None:
+            eval_callback.eval_env.close()
 
     config: dict[str, object] = {
         "algorithm": "stable-baselines3-dqn",
@@ -207,6 +310,14 @@ def train_trial(
         config=config,
         window=100,
     )
+    if eval_callback is not None:
+        save_eval_metrics(
+            trial_dir,
+            train_episodes=eval_callback.eval_train_episodes,
+            train_timesteps=eval_callback.eval_timesteps,
+            returns=eval_callback.eval_returns,
+            steps=eval_callback.eval_steps,
+        )
     model.save(trial_dir / "model")
     _save_policy_gif(
         model,
@@ -277,7 +388,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--subgoal-reward",
         type=float,
-        default=1.0,
+        default=0.3,
         help="Reward for picking up the key (--env-kind keydoor only)",
     )
     parser.add_argument(
@@ -296,6 +407,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wandb-project", default="delayed-reward")
     parser.add_argument("--wandb-entity", default=None)
     parser.add_argument("--wandb-log-every", type=int, default=1000)
+    parser.add_argument(
+        "--eval-every-episodes",
+        type=int,
+        default=20,
+        help=(
+            "Run a deterministic (exploration-off) evaluation episode every "
+            "N completed training episodes. Pass 0 to disable."
+        ),
+    )
     return parser
 
 
@@ -330,6 +450,7 @@ def main(argv: list[str] | None = None) -> None:
             wandb_enabled=args.wandb, wandb_project=args.wandb_project,
             wandb_entity=args.wandb_entity, wandb_group=run_dir.name,
             wandb_log_every=args.wandb_log_every,
+            eval_every_episodes=args.eval_every_episodes or None,
         )
 
 
