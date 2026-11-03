@@ -1,0 +1,1 @@
+{"timesteps":500000,"episode/steps":120,"_wandb":{"runtime":7355},"_timestamp":1.7933844958288102e+09,"episode/return":1.3,"train_learning_rate":0.001,"train_n_updates":124749,"_runtime":7355.965640415,"episode/count":1441,"_step":500000,"rollout_exploration_rate":0.05,"train_loss":1.5625e+06}

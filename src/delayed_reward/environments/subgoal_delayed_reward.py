@@ -21,8 +21,10 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
       (on top of whatever reward that later step already carries).
     - Reaching the goal always terminates on the step it happens, with its own
       (binary) reward delivered instantly, regardless of the subgoal timer.
-    - Pending rewards remain queued across episode resets and are delivered at
-      their scheduled global environment step.
+    - If the episode ends (terminated or truncated) before a pending subgoal
+      reward's scheduled delivery step, it is flushed immediately on that
+      final step instead of carrying over into a later episode. Every reward
+      earned in an episode is realized within that same episode.
     """
 
     def __init__(self, env: gym.Env, *, delay: int = 0, subgoal_reward: float = 1.0) -> None:
@@ -39,6 +41,7 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[ObsType, dict[str, Any]]:
         self._picked_up = False
+        self._pending.clear()
         return self.env.reset(seed=seed, options=options)
 
     def step(
@@ -70,5 +73,15 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
             info["subgoal_reward_delivered"] = True
             info["subgoal_reward_origin_step"] = origin_step
             info["subgoal_reward_amount"] = float(info.get("subgoal_reward_amount", 0.0)) + amount
+
+        if (terminated or truncated) and self._pending:
+            while self._pending:
+                _release_step, origin_step, amount = self._pending.popleft()
+                reward += amount
+                info["subgoal_reward_delivered"] = True
+                info["subgoal_reward_origin_step"] = origin_step
+                info["subgoal_reward_amount"] = (
+                    float(info.get("subgoal_reward_amount", 0.0)) + amount
+                )
 
         return obs, reward, terminated, truncated, info

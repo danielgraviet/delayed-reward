@@ -16,7 +16,10 @@ from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
 from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
 from delayed_reward.environments.keydoor_actions import KeyDoorActionWrapper
 from delayed_reward.environments.nav_actions import NavActionWrapper
-from delayed_reward.environments.subgoal_delayed_reward import SubgoalDelayedRewardWrapper
+from delayed_reward.environments.step_penalty import StepPenaltyWrapper
+from delayed_reward.environments.subgoal_delayed_reward import (
+    SubgoalDelayedRewardWrapper,
+)
 
 DEFAULT_ENV_ID = "MiniGrid-Empty-10x10-v0"
 RECTANGULAR_ENV_ID = "MiniGrid-Empty-20x8-v0"
@@ -153,6 +156,7 @@ def create_keydoor_dqn_env(
     render_mode: str | None = None,
     max_steps: int | None = None,
     num_distractors: int = 0,
+    step_penalty: float = 0.0,
 ) -> gym.Env:
     """Create a key-door MiniGrid with a flat numeric DQN observation.
 
@@ -165,6 +169,11 @@ def create_keydoor_dqn_env(
     by ``RectangularDoorKeyEnv`` (e.g. ``KEYDOOR_DISTRACTOR_ENV_ID`` or
     ``HALLWAY_KEYDOOR_ENV_ID``) accept it; passing a nonzero value with
     MiniGrid's own built-in ``KEYDOOR_ENV_ID`` raises a ``TypeError``.
+
+    ``step_penalty`` subtracts a fixed cost from every step's reward (applied
+    after the delayed/subgoal reward, so the living cost itself is never
+    delayed and is identical across all ``delay`` settings). See
+    ``StepPenaltyWrapper``.
     """
     kwargs: dict[str, object] = {"render_mode": render_mode}
     if max_steps is not None:
@@ -178,6 +187,8 @@ def create_keydoor_dqn_env(
     env = FullyObsWrapper(env)
     env = BinarySuccessRewardWrapper(env)
     env = SubgoalDelayedRewardWrapper(env, delay=delay, subgoal_reward=subgoal_reward)
+    if step_penalty:
+        env = StepPenaltyWrapper(env, penalty=step_penalty)
     env = ReseedWrapper(env, seeds=(seed,))
     env = DQNObservationWrapper(env)
     env = ActionMaskObservationWrapper(env)

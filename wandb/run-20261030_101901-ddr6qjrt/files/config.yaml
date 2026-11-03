@@ -1,0 +1,101 @@
+_wandb:
+    value:
+        cli_version: 0.31.0
+        e:
+            01a18d9b-8251-79ca-8df0-c3f7a53dd0fb:
+                args:
+                    - --env-kind
+                    - keydoor
+                    - --env-id
+                    - MiniGrid-DoorKey-Hallway-20x6-v0
+                    - --subgoal-reward
+                    - "0.3"
+                    - --delay
+                    - "0"
+                    - --trials
+                    - "10"
+                    - --workers
+                    - "5"
+                    - --timesteps
+                    - "500000"
+                    - --seed
+                    - "0"
+                    - --eval-every-episodes
+                    - "20"
+                    - --wandb
+                    - --wandb-project
+                    - delayed-reward
+                    - --wandb-log-every
+                    - "2000"
+                    - --results-dir
+                    - results
+                codePath: scripts/dqn_parallel_sweep.py
+                codePathLocal: scripts/dqn_parallel_sweep.py
+                cpu:
+                    model: AMD Ryzen 7 3700X 8-Core Processor
+                cpu_count: 8
+                cpu_count_logical: 16
+                cudaVersion: "13.2"
+                disk:
+                    /:
+                        total: "490574913536"
+                        used: "110430277632"
+                email: dgravs5@gmail.com
+                executable: /home/dtgraviet/Projects/delayed-reward/.venv/bin/python
+                git:
+                    commit: ca48c23bb7819cb5c441961033a571cdb6dec7c2
+                    remote: https://github.com/danielgraviet/delayed-reward.git
+                gpu: NVIDIA GeForce RTX 3090
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 10496
+                      memoryTotal: "25769803776"
+                      name: NVIDIA GeForce RTX 3090
+                      pciBusId: "00000000:26:00.0"
+                      uuid: GPU-17b0073b-2725-fd1e-ca92-ea3eb1cd33c7
+                host: dtgraviet-MS-7B85
+                memory:
+                    total: "82129764352"
+                os: Linux-7.0.0-38-generic-x86_64-with-glibc2.43
+                program: /home/dtgraviet/Projects/delayed-reward/scripts/dqn_parallel_sweep.py
+                python: CPython 3.13.15
+                root: /home/dtgraviet/Projects/delayed-reward
+                startedAt: "2026-10-30T16:19:01.325592Z"
+                writerId: 01a18d9b-8251-79ca-8df0-c3f7a53dd0fb
+        m: []
+        python_version: 3.13.15
+        t:
+            "1":
+                - 1
+            "2":
+                - 1
+            "3":
+                - 2
+                - 13
+                - 16
+                - 61
+            "4": 3.13.15
+            "5": 0.31.0
+            "12": 0.31.0
+            "13": linux-x86_64
+algorithm:
+    value: stable-baselines3-dqn
+delay:
+    value: 0
+env:
+    value: MiniGrid-DoorKey-Hallway-20x6-v0
+env_kind:
+    value: keydoor
+max_steps:
+    value: null
+reward_attribution:
+    value: arrival
+seed:
+    value: 0
+subgoal_reward:
+    value: 0.3
+total_timesteps:
+    value: 500000
+trial:
+    value: 0

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 from pathlib import Path
 
 import gymnasium as gym
@@ -18,7 +19,6 @@ from delayed_reward.environments.factory import (
     create_keydoor_dqn_env,
 )
 from delayed_reward.masked_dqn_policy import MaskedDQNPolicy
-from delayed_reward.training.wandb_logging import log_metrics, start_wandb_run
 from delayed_reward.results.saver import (
     create_delay_dir,
     create_run_dir,
@@ -26,6 +26,7 @@ from delayed_reward.results.saver import (
     save_eval_metrics,
     save_metrics,
 )
+from delayed_reward.training.wandb_logging import log_metrics, start_wandb_run
 
 
 def _make_env(
@@ -37,6 +38,7 @@ def _make_env(
     subgoal_reward: float,
     render_mode: str | None = None,
     max_steps: int | None = None,
+    step_penalty: float = 0.0,
 ) -> gym.Env:
     if env_kind == "keydoor":
         return create_keydoor_dqn_env(
@@ -46,6 +48,7 @@ def _make_env(
             subgoal_reward=subgoal_reward,
             render_mode=render_mode,
             max_steps=max_steps,
+            step_penalty=step_penalty,
         )
     return create_empty_dqn_env(
         env_id=env_id, seed=seed, delay=delay, render_mode=render_mode, max_steps=max_steps
@@ -129,6 +132,15 @@ class GreedyEvalCallback(BaseCallback):
     trajectory. The parameter exists in case a future environment variant
     randomizes the layout per episode, where repeated eval rollouts would
     actually differ and averaging them would matter.
+
+    Online TD updates keep nudging the Q-network after it has already found
+    a working greedy policy, and the near-tied Q-values this task's sparse
+    reward produces (see ``StepPenaltyWrapper``) mean a late update can flip
+    the final argmax into a degenerate loop even after many evals showed a
+    clean solve. ``best_window`` keeps a deep-copied policy snapshot for each
+    of the last ``best_window`` eval checkpoints so ``best_in_window`` can
+    hand back whichever of those recent snapshots actually solved the task
+    fastest, instead of trusting whatever the raw final-timestep weights do.
     """
 
     def __init__(
@@ -138,21 +150,26 @@ class GreedyEvalCallback(BaseCallback):
         eval_every_episodes: int,
         max_steps: int,
         n_eval_episodes: int = 1,
+        best_window: int = 100,
     ) -> None:
         super().__init__()
         if eval_every_episodes < 1:
             raise ValueError("eval_every_episodes must be >= 1")
         if n_eval_episodes < 1:
             raise ValueError("n_eval_episodes must be >= 1")
+        if best_window < 1:
+            raise ValueError("best_window must be >= 1")
         self.eval_env = eval_env
         self.eval_every_episodes = eval_every_episodes
         self.max_steps = max_steps
         self.n_eval_episodes = n_eval_episodes
+        self.best_window = best_window
         self._train_episode_count = 0
         self.eval_train_episodes: list[int] = []
         self.eval_timesteps: list[int] = []
         self.eval_returns: list[float] = []
         self.eval_steps: list[float] = []
+        self._window: deque[dict[str, object]] = deque(maxlen=best_window)
 
     def _run_eval(self) -> tuple[float, float]:
         returns: list[float] = []
@@ -184,7 +201,25 @@ class GreedyEvalCallback(BaseCallback):
                     self.eval_timesteps.append(int(self.num_timesteps))
                     self.eval_returns.append(eval_return)
                     self.eval_steps.append(eval_length)
+                    self._window.append(
+                        {
+                            "train_episode": self._train_episode_count,
+                            "timestep": int(self.num_timesteps),
+                            "return": eval_return,
+                            "steps": eval_length,
+                            "state_dict": {
+                                key: value.detach().clone().cpu()
+                                for key, value in self.model.policy.state_dict().items()
+                            },
+                        }
+                    )
         return True
+
+    def best_in_window(self) -> dict[str, object] | None:
+        """Return the window entry with the highest return (fewest steps breaks ties)."""
+        if not self._window:
+            return None
+        return min(self._window, key=lambda entry: (-entry["return"], entry["steps"]))
 
 
 def train_trial(
@@ -205,6 +240,8 @@ def train_trial(
     wandb_group: str | None = None,
     wandb_log_every: int = 1000,
     eval_every_episodes: int | None = 20,
+    step_penalty: float = 0.0,
+    checkpoint_window: int = 100,
 ) -> None:
     if wandb_log_every < 1:
         raise ValueError("wandb_log_every must be >= 1")
@@ -217,6 +254,7 @@ def train_trial(
         delay=delay,
         subgoal_reward=subgoal_reward,
         max_steps=max_steps,
+        step_penalty=step_penalty,
     )
     env = gym.wrappers.RecordEpisodeStatistics(env)
     config: dict[str, object] = {
@@ -225,6 +263,7 @@ def train_trial(
         "total_timesteps": total_timesteps, "max_steps": max_steps,
         "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
         "reward_attribution": reward_attribution,
+        "step_penalty": step_penalty if env_kind == "keydoor" else None,
     }
     wandb_run = start_wandb_run(
         enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
@@ -243,11 +282,13 @@ def train_trial(
             delay=delay,
             subgoal_reward=subgoal_reward,
             max_steps=max_steps,
+            step_penalty=step_penalty,
         )
         eval_callback = GreedyEvalCallback(
             eval_env=eval_env,
             eval_every_episodes=eval_every_episodes,
             max_steps=max_steps or 2000,
+            best_window=checkpoint_window,
         )
         callbacks.append(eval_callback)
     policy = MaskedDQNPolicy if env_kind == "keydoor" else "MlpPolicy"
@@ -277,6 +318,20 @@ def train_trial(
         if eval_callback is not None:
             eval_callback.eval_env.close()
 
+    best = eval_callback.best_in_window() if eval_callback is not None else None
+    if best is not None:
+        model.policy.load_state_dict(best["state_dict"])
+        checkpoint_selection: dict[str, object] = {
+            "strategy": "best_of_last_n_eval_checkpoints",
+            "window": checkpoint_window,
+            "selected_train_episode": best["train_episode"],
+            "selected_timestep": best["timestep"],
+            "selected_eval_return": best["return"],
+            "selected_eval_steps": best["steps"],
+        }
+    else:
+        checkpoint_selection = {"strategy": "final_weights"}
+
     config: dict[str, object] = {
         "algorithm": "stable-baselines3-dqn",
         "env": env_id,
@@ -285,6 +340,7 @@ def train_trial(
         "delay": delay,
         "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
         "reward_attribution": reward_attribution,
+        "step_penalty": step_penalty if env_kind == "keydoor" else None,
         "trial": trial,
         "seed": seed + trial,
         "total_timesteps": total_timesteps,
@@ -302,6 +358,7 @@ def train_trial(
         "exploration_initial_eps": 1.0,
         "exploration_final_eps": 0.05,
         "device": str(model.device),
+        "checkpoint_selection": checkpoint_selection,
     }
     save_metrics(
         trial_dir,
@@ -328,6 +385,7 @@ def train_trial(
         subgoal_reward=subgoal_reward,
         max_steps=max_steps or 200,
         path=trial_dir / "policy.gif",
+        step_penalty=step_penalty,
     )
     recent = callback.rewards[-100:]
     print(
@@ -350,6 +408,7 @@ def _save_policy_gif(
     subgoal_reward: float,
     max_steps: int,
     path: Path,
+    step_penalty: float = 0.0,
 ) -> None:
     env = _make_env(
         env_kind=env_kind,
@@ -359,6 +418,7 @@ def _save_policy_gif(
         subgoal_reward=subgoal_reward,
         render_mode="rgb_array",
         max_steps=max_steps,
+        step_penalty=step_penalty,
     )
     frames: list[Image.Image] = []
     try:
@@ -397,6 +457,26 @@ def build_parser() -> argparse.ArgumentParser:
         default="arrival",
         help="Store delayed key reward on its arrival or pickup transition",
     )
+    parser.add_argument(
+        "--step-penalty",
+        type=float,
+        default=0.0,
+        help=(
+            "Fixed cost subtracted from every step's reward (--env-kind keydoor "
+            "only). Breaks the near-tied Q-values that otherwise let a greedy "
+            "policy get stuck spinning in place indefinitely; e.g. 0.001."
+        ),
+    )
+    parser.add_argument(
+        "--checkpoint-window",
+        type=int,
+        default=100,
+        help=(
+            "Save and GIF the best deterministic-eval checkpoint from the last "
+            "N eval checkpoints (see --eval-every-episodes), instead of the raw "
+            "final-timestep weights."
+        ),
+    )
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--timesteps", type=int, default=750_000)
     parser.add_argument("--seed", type=int, default=0)
@@ -425,6 +505,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("trials and timesteps must be >= 1")
     if args.delay < 0 or (args.max_steps is not None and args.max_steps < 1):
         raise SystemExit("delay must be >= 0 and max-steps must be >= 1")
+    if args.step_penalty < 0 or args.checkpoint_window < 1:
+        raise SystemExit("step-penalty must be >= 0 and checkpoint-window must be >= 1")
     env_id = args.env_id or (KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID)
     run_dir = args.run_dir or create_run_dir(args.results_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -451,6 +533,8 @@ def main(argv: list[str] | None = None) -> None:
             wandb_entity=args.wandb_entity, wandb_group=run_dir.name,
             wandb_log_every=args.wandb_log_every,
             eval_every_episodes=args.eval_every_episodes or None,
+            step_penalty=args.step_penalty,
+            checkpoint_window=args.checkpoint_window,
         )
 
 

@@ -1,0 +1,390 @@
+RUN_DIR /home/dtgraviet/Projects/delayed-reward/results/run_20261030_161900 env_kind=keydoor delays=[0] trials=10 pending=10 skipped=0 workers=5 timesteps=500000
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from /home/dtgraviet/.netrc.
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from /home/dtgraviet/.netrc.
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from /home/dtgraviet/.netrc.
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from /home/dtgraviet/.netrc.
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from /home/dtgraviet/.netrc.
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: setting up run dmnvchor
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_101901-ddr6qjrt
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-0
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/ddr6qjrt
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_101901-en1bz3jg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-4
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/en1bz3jg
+wandb: setting up run 7d7v8jve
+wandb: setting up run w7ybu98s
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_101901-dmnvchor
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-3
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/dmnvchor
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_101901-w7ybu98s
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-1
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/w7ybu98s
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_101901-7d7v8jve
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-2
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/7d7v8jve
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=2 episodes=523 last_100_mean_return=0.988 device=cuda path=results/run_20261030_161900/delay_0/trial_2
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▅▆▆▆▆▇▇▇▇▇▇▇███
+wandb:           episode/return ▁▁▁▁▁▁▁███▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁███▁████▁
+wandb:            episode/steps ███▅▇█▅█▂▆▂▆███████▃███▇█▅███▃███▅▅█▅▁▇▄
+wandb: rollout_exploration_rate ███▇▇▅▅▄▃▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇▇▇▇███
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ██▆█▇▅▆▅▇▅▅▇▆▅▄▄▃▃▃▂▂▁▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:          train_n_updates ▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▄▅▅▅▅▅▅▅▆▆▆▆▇▇▇██
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 523
+wandb:           episode/return 1.3
+wandb:            episode/steps 710
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-2 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/7d7v8jve
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_101901-7d7v8jve/logs
+DONE delay=0 trial=2 results/run_20261030_161900/delay_0/trial_2
+wandb: setting up run 1p7f9a8n
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_122038-1p7f9a8n
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-5
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/1p7f9a8n
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=0 episodes=477 last_100_mean_return=0.880 device=cuda path=results/run_20261030_161900/delay_0/trial_0
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▂▂▂▂▃▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇████
+wandb:           episode/return ▃▃▃▃▃███▃▃▃▃▃▃▁▁▃▃▃▃▃▃▃▃▃▃█▃█▃▃█▃█▃██▃██
+wandb:            episode/steps ████▅█▄▃▇▂██████████████████▃▅████████▅▁
+wandb: rollout_exploration_rate ██▆▆▆▅▅▅▄▄▃▃▃▃▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇▇▇███
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ▆█▆▇█▃▆▅▆▅▄▆▄▅▄▅▃▁▂▂▂▁▂▂▂▁▁▂▂▁▂▂▁▁▁▁▁▂▁▁
+wandb:          train_n_updates ▁▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▆▇▇▇▇█
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 477
+wandb:           episode/return 1.3
+wandb:            episode/steps 1091
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 3e-05
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-0 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/ddr6qjrt
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_101901-ddr6qjrt/logs
+DONE delay=0 trial=0 results/run_20261030_161900/delay_0/trial_0
+wandb: setting up run yhb7k54c
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_122057-yhb7k54c
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-6
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/yhb7k54c
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=3 episodes=1150 last_100_mean_return=1.280 device=cuda path=results/run_20261030_161900/delay_0/trial_3
+wandb: updating run metadata
+wandb: uploading history steps 1389-1391, summary, console lines 2-2
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▁▂▃▃▄▄▄▄▄▄▄▅▅▅▅▅▅▅▅▅▆▆▆▇▇▇▇▇▇▇▇█████
+wandb:           episode/return ▁██▁█████████████████████████████▁████▁█
+wandb:            episode/steps ███▇▆▇▆▇▃▃▂▁▁▃▂▁▁▂▂▂▃▁▂▂▂▂▁▁▅▅▃▂▁▂▂▅▃▆▃▃
+wandb: rollout_exploration_rate ██▇▇▆▆▆▅▅▅▄▃▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▂▂▂▃▃▃▃▃▃▃▃▄▄▄▄▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇█
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss █▇▇▆█▇█▅▇▅▄▃▃▃▃▃▁▂▁▁▂▂▂▁▁▂▁▁▁▁▁▁▁▁▁▁▁▂▂▁
+wandb:          train_n_updates ▁▁▁▁▂▂▂▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇█
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 1150
+wandb:           episode/return 1.3
+wandb:            episode/steps 136
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-3 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/dmnvchor
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_101901-dmnvchor/logs
+DONE delay=0 trial=3 results/run_20261030_161900/delay_0/trial_3
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_122108-lk66262l
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-7
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/lk66262l
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=1 episodes=1441 last_100_mean_return=1.300 device=cuda path=results/run_20261030_161900/delay_0/trial_1
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▁▂▂▂▂▂▂▃▃▄▄▄▄▄▄▄▅▅▅▆▆▆▆▆▆▇▇▇▇▇▇▇████
+wandb:           episode/return ▁▁▁▁█▁███████████▁▁█████████████████████
+wandb:            episode/steps ████▆██▄▁▄▂▂▂▂▁▇▆▃▂▂▁▁▁▁▁▁▁▁▁▁▂▂▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate █▇▇▇▆▅▄▄▃▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▂▂▂▃▃▃▄▄▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇▇▇████
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss █▇█▇▇█▇▆▇▆▆▆▆▅▄▅▃▄▄▃▂▁▂▂▂▁▂▁▁▂▁▁▁▁▁▁▁▂▁▁
+wandb:          train_n_updates ▁▁▂▂▂▂▂▂▂▃▃▃▃▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇███
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 1441
+wandb:           episode/return 1.3
+wandb:            episode/steps 120
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-1 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/w7ybu98s
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_101901-w7ybu98s/logs
+DONE delay=0 trial=1 results/run_20261030_161900/delay_0/trial_1
+wandb: setting up run yjwn8cv4
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_122139-yjwn8cv4
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-8
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/yjwn8cv4
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=4 episodes=9502 last_100_mean_return=1.274 device=cuda path=results/run_20261030_161900/delay_0/trial_4
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▄▄▅▅▅▆▆▆▇▇▇▇██
+wandb:           episode/return ▁▁▁█████████████████████████████████████
+wandb:            episode/steps ▇█▇▆▂▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate █▇▇▇▇▆▆▅▅▄▄▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▁▂▂▂▂▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇▇▇▇███
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ▇▇▆█▄▆▆▆▆▄▆▆▆▅▃▅▃▂▂▁▂▁▁▁▁▁▁▁▁▂▁▁▁▁▁▂▁▁▁▂
+wandb:          train_n_updates ▁▁▁▂▂▂▂▂▃▃▃▄▄▄▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 9502
+wandb:           episode/return 1.3
+wandb:            episode/steps 61
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-4 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/en1bz3jg
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_101901-en1bz3jg/logs
+DONE delay=0 trial=4 results/run_20261030_161900/delay_0/trial_4
+wandb: setting up run ves2whmh
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /home/dtgraviet/Projects/delayed-reward/wandb/run-20261030_122224-ves2whmh
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-9
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/ves2whmh
+/home/dtgraviet/Projects/delayed-reward/.venv/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=5 episodes=880 last_100_mean_return=1.300 device=cuda path=results/run_20261030_161900/delay_0/trial_5
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▂▂▂▂▂▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▆▆▆▆▆▆▇▇▇▇▇█████
+wandb:           episode/return ▃▃██████▃▃▁▃▁▁▁▃█▃▃██▁█████▁████████████
+wandb:            episode/steps █▃█▄▃█████▆██████▃▁▁▁▂▂▃▁▁▂▁▁▃▁▁▄▃▁▁▁▃▂▁
+wandb: rollout_exploration_rate ███▇▇▇▆▅▅▄▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▂▂▂▂▂▂▃▃▃▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇██
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ▇▇▇▇▆▆▇██▇▅▆▆▅▆▆▄▃▄▄▂▂▃▂▂▂▂▂▁▂▂▁▁▁▂▁▁▁▁▁
+wandb:          train_n_updates ▁▁▁▁▁▁▂▂▂▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇█
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 880
+wandb:           episode/return 1.3
+wandb:            episode/steps 166
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 0.00024
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-5 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/1p7f9a8n
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_122038-1p7f9a8n/logs
+DONE delay=0 trial=5 results/run_20261030_161900/delay_0/trial_5
+trial=8 episodes=3793 last_100_mean_return=1.300 device=cuda path=results/run_20261030_161900/delay_0/trial_8
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▂▂▂▂▂▃▃▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇███
+wandb:           episode/return ▃█▁▁▁███████████████████████████████████
+wandb:            episode/steps █▂███▄▄▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate ██▇▇▇▆▆▆▅▅▅▄▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▂▂▂▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇███
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ██▇▆▇▆▆█▆▆▅▅▄▄▃▄▃▃▃▃▂▂▁▃▂▁▁▁▁▁▁▁▁▁▁▁▂▁▁▂
+wandb:          train_n_updates ▁▁▂▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇▇███
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 3793
+wandb:           episode/return 1.3
+wandb:            episode/steps 56
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-8 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/yjwn8cv4
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_122139-yjwn8cv4/logs
+DONE delay=0 trial=8 results/run_20261030_161900/delay_0/trial_8
+trial=7 episodes=5828 last_100_mean_return=1.300 device=cuda path=results/run_20261030_161900/delay_0/trial_7
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇████
+wandb:           episode/return ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:            episode/steps ▂▂▁█▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate █▇▇▇▆▆▅▅▄▄▄▃▃▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▁▂▂▂▂▂▃▃▃▃▄▄▄▄▄▄▄▅▅▅▅▆▆▆▆▆▇▇▇▇▇█████
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss █▅▇█▆▆▅▅▄▇▅▄▃▄▃▃▃▂▂▂▂▁▂▂▁▁▂▁▁▁▁▁▁▂▁▁▁▂▁▁
+wandb:          train_n_updates ▁▁▁▁▂▂▂▂▃▃▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▆▆▇▇▇██
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 5828
+wandb:           episode/return 1.3
+wandb:            episode/steps 27
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-7 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/lk66262l
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_122108-lk66262l/logs
+DONE delay=0 trial=7 results/run_20261030_161900/delay_0/trial_7
+trial=6 episodes=7685 last_100_mean_return=1.300 device=cuda path=results/run_20261030_161900/delay_0/trial_6
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▂▂▂▂▃▃▃▃▄▄▄▄▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▇▇▇▇▇▇████
+wandb:           episode/return ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:            episode/steps ▃▄▂▂▅▂▇▂█▂▁▁▁▂▂▁▂▄▁▁▁▁▁▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate ███▇▇▆▅▅▄▄▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▂▂▂▂▂▃▃▃▃▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▆▆▆▇▇▇▇▇▇▇████
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss █▆▇▆▅▅▅▄▄▄▄▅▄▄▄▄▃▄▃▂▂▂▂▂▂▁▂▂▂▁▁▁▁▁▁▁▁▁▂▂
+wandb:          train_n_updates ▁▁▁▂▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▅▅▅▅▆▆▆▆▆▆▆▇▇▇▇▇▇████
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 7685
+wandb:           episode/return 1.3
+wandb:            episode/steps 25
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-6 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/yhb7k54c
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_122057-yhb7k54c/logs
+DONE delay=0 trial=6 results/run_20261030_161900/delay_0/trial_6
+trial=9 episodes=9898 last_100_mean_return=1.300 device=cuda path=results/run_20261030_161900/delay_0/trial_9
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▂▂▂▂▃▃▃▃▃▃▃▄▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇██
+wandb:           episode/return ▁███████████████████████████████████████
+wandb:            episode/steps █▃▂▄▁▁▁▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▁▂▁
+wandb: rollout_exploration_rate ███▇▇▅▄▄▃▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss █▇▇▆▇▄▅▄▄▅▄▄▅▅▄▄▄▂▃▂▃▁▂▁▂▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:          train_n_updates ▁▁▁▁▂▂▂▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▄▄▅▅▅▆▆▆▇▇▇▇▇▇████
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 9898
+wandb:           episode/return 1.3
+wandb:            episode/steps 76
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-9 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/ves2whmh
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261030_122224-ves2whmh/logs
+DONE delay=0 trial=9 results/run_20261030_161900/delay_0/trial_9
+PLOT /home/dtgraviet/Projects/delayed-reward/results/run_20261030_161900/delay_survival.png
+All DQN trials finished under /home/dtgraviet/Projects/delayed-reward/results/run_20261030_161900
