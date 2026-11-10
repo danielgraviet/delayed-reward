@@ -1,0 +1,42 @@
+RUN_DIR /root/results/run_20261110_163303
+ENV MiniGrid-DoorKey-8x8-v0 DELAYS [0] TRIALS 1 WORKERS 1 PENDING 1 SKIPPED 0
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from WANDB_API_KEY.
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /root/repo/wandb/run-20261110_163309-tsemqkal
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-0
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/tsemqkal
+/usr/local/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=0 episodes=31 last_100_mean_return=0.300 device=cpu path=/root/results/run_20261110_163303/delay_0/trial_0
+wandb: updating run metadata
+wandb: uploading history steps 32-49, summary, console lines 2-2
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▅▅▆▆▆▆▇▇▇▇███
+wandb:           episode/return ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:            episode/steps ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate █▇▆▅▄▃▂▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▂▂▂▃▃▄▄▄▅▅▅▆▆▇▇▇██
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ██▅▆▅▅▅▆▃▃▃▂▃▃▁▂▂▁▃
+wandb:          train_n_updates ▁▁▂▂▃▃▃▄▄▅▅▅▆▆▆▇▇██
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 31
+wandb:           episode/return 0.3
+wandb:            episode/steps 640
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 20000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 15625000.0
+wandb:          train_n_updates 4749
+wandb: 
+wandb: 🚀 View run delay-0-trial-0 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/tsemqkal
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261110_163309-tsemqkal/logs
+DONE delay=0 trial=0 /root/results/run_20261110_163303/delay_0/trial_0
+All DQN trials finished under /root/results/run_20261110_163303
