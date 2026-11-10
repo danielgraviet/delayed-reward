@@ -1,0 +1,43 @@
+{
+  "onset_threshold": 0.5,
+  "smooth_window": 100,
+  "n_trials_by_delay": {
+    "0": 2
+  },
+  "onset_episodes_by_delay": {
+    "0": [
+      null,
+      99
+    ]
+  },
+  "n_passed_by_delay": {
+    "0": 1
+  },
+  "pass_fraction_by_delay": {
+    "0": 0.5
+  },
+  "onset_mean_by_delay": {
+    "0": 99.0
+  },
+  "onset_std_by_delay": {
+    "0": 0.0
+  },
+  "sustained_onset_episodes_by_delay": {
+    "0": [
+      null,
+      99
+    ]
+  },
+  "n_sustained_passed_by_delay": {
+    "0": 1
+  },
+  "sustained_pass_fraction_by_delay": {
+    "0": 0.5
+  },
+  "sustained_onset_mean_by_delay": {
+    "0": 99.0
+  },
+  "sustained_onset_std_by_delay": {
+    "0": 0.0
+  }
+}

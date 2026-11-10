@@ -71,6 +71,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wandb-project", default="delayed-reward")
     parser.add_argument("--wandb-entity", default=None)
     parser.add_argument("--wandb-log-every", type=int, default=1000)
+    parser.add_argument(
+        "--trial-ids",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Run only these trial indices (each < --trials); used by remote launchers",
+    )
+    parser.add_argument("--no-plot", action="store_true", help="Skip the survival plot")
     return parser
 
 
@@ -115,8 +123,8 @@ def _run_trial(task: tuple[argparse.Namespace, str, Path, int, int]) -> Path:
     return trial_dir
 
 
-def main() -> None:
-    args = build_parser().parse_args()
+def resolve_sweep(args: argparse.Namespace) -> tuple[list[int], list[int], str, Path]:
+    """Validate args and return (delays, trial_ids, env_id, run_dir)."""
     delays = list(dict.fromkeys(args.delay))
     if args.trials < 1 or args.timesteps < 1 or args.workers < 1:
         raise SystemExit("trials, timesteps, and workers must be >= 1")
@@ -128,6 +136,9 @@ def main() -> None:
         raise SystemExit("step-penalty must be >= 0 and checkpoint-window must be >= 1")
     if not 0.0 <= args.onset_threshold <= 1.0:
         raise SystemExit("onset-threshold must be in [0, 1]")
+    trial_ids = list(dict.fromkeys(args.trial_ids)) if args.trial_ids else list(range(args.trials))
+    if any(not 0 <= trial < args.trials for trial in trial_ids):
+        raise SystemExit("trial-ids must be in [0, trials)")
 
     env_id = args.env_id or (KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID)
 
@@ -137,12 +148,26 @@ def main() -> None:
         run_dir = args.run_dir
         if not run_dir.is_dir():
             raise SystemExit(f"run directory does not exist: {run_dir}")
+    return delays, trial_ids, env_id, run_dir
 
-    tasks: list[tuple[argparse.Namespace, str, Path, int, int]] = []
+
+def plan_tasks(
+    args: argparse.Namespace,
+    env_id: str,
+    run_dir: Path,
+    delays: list[int],
+    trial_ids: list[int],
+) -> tuple[list[tuple[int, int]], int]:
+    """Return pending (delay, trial) pairs and the count of completed ones skipped.
+
+    Completed trials must match the requested settings. Leftover directories of
+    incomplete trials are moved under ``run_dir/_incomplete``.
+    """
+    pending: list[tuple[int, int]] = []
     skipped = 0
     for delay in delays:
         delay_dir = create_delay_dir(run_dir, delay)
-        for trial in range(args.trials):
+        for trial in trial_ids:
             summary_path = delay_dir / f"trial_{trial}" / "summary.json"
             if summary_path.exists():
                 saved_config = json.loads(summary_path.read_text()).get("config", {})
@@ -168,7 +193,15 @@ def main() -> None:
                     trial_dir.rename(
                         backup_root / f"delay_{delay}_trial_{trial}_{stamp}"
                     )
-                tasks.append((args, env_id, run_dir, delay, trial))
+                pending.append((delay, trial))
+    return pending, skipped
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    delays, trial_ids, env_id, run_dir = resolve_sweep(args)
+    pending, skipped = plan_tasks(args, env_id, run_dir, delays, trial_ids)
+    tasks = [(args, env_id, run_dir, delay, trial) for delay, trial in pending]
 
     print(f"RUN_DIR {run_dir.resolve()}", flush=True)
     print(
@@ -194,7 +227,7 @@ def main() -> None:
         for delay in delays
         for metrics_path in (run_dir / f"delay_{delay}").glob("trial_*/metrics.csv")
     )
-    if has_metrics:
+    if has_metrics and not args.no_plot:
         plot_path = plot_delay_survival(
             run_dir,
             smooth_window=100,

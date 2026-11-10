@@ -22,6 +22,9 @@ build-backend = "hatchling.build"
 packages = ["src/delayed_reward"]
 
 [dependency-groups]
+cloud = [
+    "daytona>=0.231.1",
+]
 dev = [
     "pytest>=9.1.1",
 ]

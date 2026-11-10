@@ -40,3 +40,19 @@ uv run python scripts/dqn_parallel_sweep.py \
 The sequential entrypoints also accept `--wandb`. DQN's
 `--wandb-log-every` controls how often training metrics are sampled, in
 timesteps (default 1000).
+
+## Scaling DQN sweeps on Daytona (CPU sandboxes)
+
+DQN trials are CPU-bound, so they can be fanned out to Daytona sandboxes with
+one trial per sandbox. Results land in a normal local `results/run_*`
+directory:
+
+```sh
+uv sync --group cloud && export DAYTONA_API_KEY=...
+uv run --group cloud scripts/daytona_snapshot.py          # once per uv.lock change
+uv run --group cloud scripts/daytona_sweep.py \
+  --env-kind keydoor --delay 0 2 5 10 --trials 10 --wandb --max-sandboxes 40
+```
+
+See [docs/DAYTONA_RUNBOOK.md](docs/DAYTONA_RUNBOOK.md) for setup, resume,
+cleanup, and the current status/next steps.
