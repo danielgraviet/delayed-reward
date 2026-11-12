@@ -1,0 +1,42 @@
+RUN_DIR /root/results/run_20261110_171314
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 WORKERS 1 RANDOMIZE none PENDING 1 SKIPPED 0
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from WANDB_API_KEY.
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /root/repo/wandb/run-20261110_171321-cudl2mgr
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-6
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/cudl2mgr
+/usr/local/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=6 episodes=6089 last_100_mean_return=1.271 device=cpu path=/root/results/run_20261110_171314/delay_0/trial_6
+wandb: updating run metadata
+wandb: uploading history steps 6573-6580, summary, console lines 2-2
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▂▂▂▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇██
+wandb:           episode/return ▁███████████████████████████████████████
+wandb:            episode/steps ██▁▄▁▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: rollout_exploration_rate ██▇▇▆▆▆▆▅▅▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▄▄▅▅▅▅▅▅▅▆▆▇▇▇▇████
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ▆▆▆█▇▆▇▇█▆▇▆▆▄▆▄▄▃▃▄▄▂▃▂▂▂▁▂▁▁▁▁▂▂▁▂▂▁▁▁
+wandb:          train_n_updates ▁▁▁▁▁▂▂▂▃▃▃▄▄▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇█████
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 6089
+wandb:           episode/return 1.271
+wandb:            episode/steps 29
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-6 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/cudl2mgr
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261110_171321-cudl2mgr/logs
+DONE delay=0 trial=6 /root/results/run_20261110_171314/delay_0/trial_6
+All DQN trials finished under /root/results/run_20261110_171314

@@ -15,6 +15,7 @@ from delayed_reward.environments.adapter import MinigridAdapter
 from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
 from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
 from delayed_reward.environments.keydoor_actions import KeyDoorActionWrapper
+from delayed_reward.environments.layout import LayoutRandomization, SeedOnceWrapper
 from delayed_reward.environments.nav_actions import NavActionWrapper
 from delayed_reward.environments.step_penalty import StepPenaltyWrapper
 from delayed_reward.environments.subgoal_delayed_reward import (
@@ -41,11 +42,18 @@ if RECTANGULAR_ENV_ID not in registry:
         kwargs={"width": 20, "height": 8},
     )
 
+_RECTANGULAR_DOORKEY_ENTRY_POINT = "delayed_reward.environments.rectangular:RectangularDoorKeyEnv"
+
+# Fixed (canonical) layouts. They match what seed 0 produced before layouts
+# were made seed-independent, so trial 0 of older runs saw the same room.
 if HALLWAY_KEYDOOR_ENV_ID not in registry:
     register(
         id=HALLWAY_KEYDOOR_ENV_ID,
-        entry_point="delayed_reward.environments.rectangular:RectangularDoorKeyEnv",
-        kwargs={"width": 20, "height": 6},
+        entry_point=_RECTANGULAR_DOORKEY_ENTRY_POINT,
+        kwargs={
+            "width": 20, "height": 6,
+            "agent_start_pos": (1, 3), "key_pos": (7, 1), "door_pos": (15, 2),
+        },
     )
 
 # KEYDOOR_ENV_ID is MiniGrid's own built-in DoorKeyEnv, which doesn't accept
@@ -55,9 +63,29 @@ if HALLWAY_KEYDOOR_ENV_ID not in registry:
 if KEYDOOR_DISTRACTOR_ENV_ID not in registry:
     register(
         id=KEYDOOR_DISTRACTOR_ENV_ID,
-        entry_point="delayed_reward.environments.rectangular:RectangularDoorKeyEnv",
-        kwargs={"width": 8, "height": 8},
+        entry_point=_RECTANGULAR_DOORKEY_ENTRY_POINT,
+        kwargs={
+            "width": 8, "height": 8,
+            "agent_start_pos": (1, 4), "key_pos": (2, 2), "door_pos": (5, 4),
+        },
     )
+
+
+def fixed_layout_source(env_id: str) -> str:
+    """Where a keydoor env's un-randomized layout comes from: ``"canonical"`` or ``"seed"``.
+
+    Recorded in each trial's config so resumes never mix the two kinds of runs.
+    """
+    return "canonical" if supports_layout_randomization(env_id) else "seed"
+
+
+def supports_layout_randomization(env_id: str) -> bool:
+    """Whether ``env_id`` is backed by ``RectangularDoorKeyEnv`` (fixed layout + toggles).
+
+    MiniGrid's built-in ``KEYDOOR_ENV_ID`` instead draws its whole layout from
+    the seed and can't keep elements fixed or randomize them individually.
+    """
+    return env_id in registry and registry[env_id].entry_point == _RECTANGULAR_DOORKEY_ENTRY_POINT
 
 
 def create_empty_env(
@@ -157,6 +185,7 @@ def create_keydoor_dqn_env(
     max_steps: int | None = None,
     num_distractors: int = 0,
     step_penalty: float = 0.0,
+    randomize: LayoutRandomization = LayoutRandomization(),
 ) -> gym.Env:
     """Create a key-door MiniGrid with a flat numeric DQN observation.
 
@@ -174,6 +203,12 @@ def create_keydoor_dqn_env(
     after the delayed/subgoal reward, so the living cost itself is never
     delayed and is identical across all ``delay`` settings). See
     ``StepPenaltyWrapper``.
+
+    ``randomize`` re-samples the chosen layout elements (agent start, key,
+    door) uniformly every episode; the rest stay at the env's fixed positions.
+    Like ``num_distractors`` it needs an env backed by ``RectangularDoorKeyEnv``
+    (see ``supports_layout_randomization``); ``KEYDOOR_DISTRACTOR_ENV_ID`` is
+    the 8x8 one.
     """
     kwargs: dict[str, object] = {"render_mode": render_mode}
     if max_steps is not None:
@@ -182,6 +217,13 @@ def create_keydoor_dqn_env(
         kwargs["max_steps"] = max_steps
     if num_distractors:
         kwargs["num_distractors"] = num_distractors
+    if randomize.any:
+        if not supports_layout_randomization(env_id):
+            raise ValueError(
+                f"{env_id} does not support layout randomization; use an env backed by "
+                f"RectangularDoorKeyEnv, e.g. {KEYDOOR_DISTRACTOR_ENV_ID} or {HALLWAY_KEYDOOR_ENV_ID}"
+            )
+        kwargs["randomize"] = randomize
     env: gym.Env = gym.make(env_id, **kwargs)
     env = KeyDoorActionWrapper(env)
     env = FullyObsWrapper(env)
@@ -189,7 +231,8 @@ def create_keydoor_dqn_env(
     env = SubgoalDelayedRewardWrapper(env, delay=delay, subgoal_reward=subgoal_reward)
     if step_penalty:
         env = StepPenaltyWrapper(env, penalty=step_penalty)
-    env = ReseedWrapper(env, seeds=(seed,))
+    # A fixed layout reseeds every reset; per-episode randomization needs the RNG to advance.
+    env = SeedOnceWrapper(env, seed) if randomize.any else ReseedWrapper(env, seeds=(seed,))
     env = DQNObservationWrapper(env)
     env = ActionMaskObservationWrapper(env)
     return env

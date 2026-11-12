@@ -1,0 +1,43 @@
+RUN_DIR /root/results/run_20261110_171314
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 WORKERS 1 RANDOMIZE none PENDING 1 SKIPPED 0
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from WANDB_API_KEY.
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: setting up run kdtbm5zr
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /root/repo/wandb/run-20261110_171320-kdtbm5zr
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-7
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/kdtbm5zr
+/usr/local/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=7 episodes=4492 last_100_mean_return=1.268 device=cpu path=/root/results/run_20261110_171314/delay_0/trial_7
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▂▂▂▂▂▃▃▃▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇████████
+wandb:           episode/return ▁███████████▇█████████████████████▇█████
+wandb:            episode/steps █▄▁▂▄▃▂▂▃▂▂▁▁▁▁▁▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▁▁▁▁
+wandb: rollout_exploration_rate ███▇▇▇▇▆▆▅▅▄▄▃▃▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▂▂▂▂▂▂▂▂▂▂▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▇▇▇▇▇███
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss ▇█▇▆▆▆▆▆▄▄▄▅▃▅▅▄▃▃▃▃▂▁▁▂▃▁▁▁▁▁▁▁▁▁▂▁▂▁▁▂
+wandb:          train_n_updates ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▇▇▇▇▇▇▇█████
+wandb: 
+wandb: Run summary:
+wandb:            episode/count 4492
+wandb:           episode/return 1.267
+wandb:            episode/steps 33
+wandb: rollout_exploration_rate 0.05
+wandb:                timesteps 500000
+wandb:      train_learning_rate 0.001
+wandb:               train_loss 1562500.0
+wandb:          train_n_updates 124749
+wandb: 
+wandb: 🚀 View run delay-0-trial-7 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/kdtbm5zr
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261110_171320-kdtbm5zr/logs
+DONE delay=0 trial=7 /root/results/run_20261110_171314/delay_0/trial_7
+All DQN trials finished under /root/results/run_20261110_171314

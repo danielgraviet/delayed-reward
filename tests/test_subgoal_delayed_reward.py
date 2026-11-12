@@ -103,32 +103,31 @@ def test_delay_holds_subgoal_reward_then_delivers_after_n_steps() -> None:
     assert goal_terminated is True
 
 
-def test_pending_subgoal_reward_survives_episode_end_and_reset() -> None:
-    # Delay outlives the remaining path to the goal. The goal ends the episode,
-    # but the pending subgoal reward remains scheduled across reset.
+def test_pending_subgoal_reward_is_flushed_on_the_terminating_step() -> None:
+    # The delay outlives the remaining path to the goal, so the pending subgoal
+    # reward is paid on the goal step instead of leaking into the next episode.
     env = make_env(delay=20)
     env.reset()
     outcomes = step_sequence(env, PATH_TO_GOAL_6X6)
-    env.close()
 
     assert len(outcomes) == len(PATH_TO_GOAL_6X6)
     reward, terminated, truncated, info = outcomes[-1]
-    assert reward == 1.0
+    assert reward == 2.0  # goal reward + flushed subgoal reward
     assert terminated is True
     assert truncated is False
-    assert "subgoal_reward_delivered" not in info
+    assert info["subgoal_reward_delivered"] is True
+    assert info["subgoal_reward_origin_step"] == PICKUP_STEP_INDEX + 1
+    assert info["subgoal_reward_amount"] == 1.0
 
+    # Nothing is left over for the next episode.
     env.reset()
-    delivered = None
-    while delivered is None:
+    for _ in range(30):
         _obs, reward, terminated, truncated, info = env.step(LEFT)
-        if info.get("subgoal_reward_delivered"):
-            delivered = (reward, info)
+        assert reward == 0.0
+        assert "subgoal_reward_delivered" not in info
         if terminated or truncated:
-            env.reset()
+            break
     env.close()
-    assert delivered[0] == 1.0
-    assert delivered[1]["subgoal_reward_origin_step"] == PICKUP_STEP_INDEX + 1
 
 
 def test_reset_clears_pending_subgoal_state() -> None:
@@ -147,28 +146,25 @@ def test_reset_clears_pending_subgoal_state() -> None:
     assert "subgoal_reward_delivered" not in info
 
 
-def test_delay_50_releases_at_exact_global_step_across_episode_reset() -> None:
-    delay = 50
-    env = make_env(delay=delay)
+def test_pending_subgoal_reward_is_flushed_on_truncation() -> None:
+    # Pick up the key, then spin in place until the step limit truncates the
+    # episode before the 50-step delay has elapsed.
+    max_steps = 10
+    env: gym.Env = gym.make("MiniGrid-DoorKey-6x6-v0", max_steps=max_steps)
+    env = KeyDoorActionWrapper(env)
+    env = FullyObsWrapper(env)
+    env = BinarySuccessRewardWrapper(env)
+    env = SubgoalDelayedRewardWrapper(env, delay=50, subgoal_reward=1.0)
+    env = ReseedWrapper(env, seeds=(0,))
     env.reset()
-    pickup_info = None
-    for action in PATH_TO_GOAL_6X6:
-        _obs, _reward, terminated, truncated, info = env.step(action)
-        if info.get("subgoal_reached"):
-            pickup_info = info
-        if terminated or truncated:
-            break
-    assert pickup_info is not None
-    origin_step = pickup_info["environment_step"]
-
-    release_info = None
-    while release_info is None:
-        if terminated or truncated:
-            env.reset()
-        _obs, _reward, terminated, truncated, info = env.step(LEFT)
-        if info.get("subgoal_reward_delivered"):
-            release_info = info
-            assert _reward == 1.0
+    outcomes = step_sequence(env, PATH_TO_GOAL_6X6[: PICKUP_STEP_INDEX + 1] + (LEFT,) * max_steps)
     env.close()
-    assert release_info["environment_step"] == origin_step + delay
-    assert release_info["subgoal_reward_origin_step"] == origin_step
+
+    assert len(outcomes) == max_steps
+    *before_end, (reward, terminated, truncated, info) = outcomes
+    assert all(r == 0.0 and "subgoal_reward_delivered" not in i for r, _t, _tr, i in before_end)
+    assert truncated is True
+    assert terminated is False
+    assert reward == 1.0
+    assert info["subgoal_reward_delivered"] is True
+    assert info["subgoal_reward_origin_step"] == PICKUP_STEP_INDEX + 1

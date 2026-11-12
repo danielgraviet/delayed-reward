@@ -17,8 +17,13 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from delayed_reward.dqn_experiment import train_trial
-from delayed_reward.environments.factory import DEFAULT_ENV_ID, KEYDOOR_ENV_ID
+from delayed_reward.dqn_experiment import add_layout_args, layout_from_args, train_trial
+from delayed_reward.environments.factory import (
+    DEFAULT_ENV_ID,
+    KEYDOOR_ENV_ID,
+    create_keydoor_dqn_env,
+    fixed_layout_source,
+)
 from delayed_reward.results.plotting import DEFAULT_ONSET_THRESHOLD, plot_delay_survival
 from delayed_reward.results.saver import create_delay_dir, create_run_dir, create_trial_dir
 
@@ -79,7 +84,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run only these trial indices (each < --trials); used by remote launchers",
     )
     parser.add_argument("--no-plot", action="store_true", help="Skip the survival plot")
+    add_layout_args(parser)
     return parser
+
+
+def _legacy_config_value(saved_config: dict[str, object], key: str) -> object:
+    """Value implied for ``key`` by summaries written before the key existed."""
+    if saved_config.get("env_kind") != "keydoor":
+        return None
+    return {"layout_randomization": [], "fixed_layout": "seed"}.get(key)
 
 
 def _expected_config(args: argparse.Namespace, env_id: str, delay: int, trial: int) -> dict[str, object]:
@@ -90,6 +103,10 @@ def _expected_config(args: argparse.Namespace, env_id: str, delay: int, trial: i
         "subgoal_reward": args.subgoal_reward if args.env_kind == "keydoor" else None,
         "reward_attribution": args.reward_attribution,
         "step_penalty": args.step_penalty if args.env_kind == "keydoor" else None,
+        "layout_randomization": (
+            layout_from_args(args).names() if args.env_kind == "keydoor" else None
+        ),
+        "fixed_layout": fixed_layout_source(env_id) if args.env_kind == "keydoor" else None,
         "trial": trial,
         "seed": args.seed + trial,
         "total_timesteps": args.timesteps,
@@ -119,6 +136,8 @@ def _run_trial(task: tuple[argparse.Namespace, str, Path, int, int]) -> Path:
         eval_every_episodes=args.eval_every_episodes or None,
         step_penalty=args.step_penalty,
         checkpoint_window=args.checkpoint_window,
+        randomize=layout_from_args(args),
+        eval_episodes=args.eval_episodes,
     )
     return trial_dir
 
@@ -136,11 +155,18 @@ def resolve_sweep(args: argparse.Namespace) -> tuple[list[int], list[int], str, 
         raise SystemExit("step-penalty must be >= 0 and checkpoint-window must be >= 1")
     if not 0.0 <= args.onset_threshold <= 1.0:
         raise SystemExit("onset-threshold must be in [0, 1]")
+    randomize = layout_from_args(args)
     trial_ids = list(dict.fromkeys(args.trial_ids)) if args.trial_ids else list(range(args.trials))
     if any(not 0 <= trial < args.trials for trial in trial_ids):
         raise SystemExit("trial-ids must be in [0, trials)")
 
     env_id = args.env_id or (KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID)
+    if randomize.any:
+        # Fail here, not inside every worker/sandbox, if the env can't randomize.
+        try:
+            create_keydoor_dqn_env(env_id=env_id, randomize=randomize).close()
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
 
     if args.run_dir is None:
         run_dir = create_run_dir(args.results_dir)
@@ -172,11 +198,11 @@ def plan_tasks(
             if summary_path.exists():
                 saved_config = json.loads(summary_path.read_text()).get("config", {})
                 expected = _expected_config(args, env_id, delay, trial)
-                mismatches = {
-                    key: (saved_config.get(key), value)
-                    for key, value in expected.items()
-                    if saved_config.get(key) != value
-                }
+                mismatches = {}
+                for key, value in expected.items():
+                    saved = saved_config.get(key, _legacy_config_value(saved_config, key))
+                    if saved != value:
+                        mismatches[key] = (saved, value)
                 if mismatches:
                     raise SystemExit(
                         f"refusing to mix settings in {summary_path}: {mismatches}"
@@ -206,7 +232,7 @@ def main() -> None:
     print(f"RUN_DIR {run_dir.resolve()}", flush=True)
     print(
         f"ENV {env_id} DELAYS {delays} TRIALS {args.trials} WORKERS {args.workers} "
-        f"PENDING {len(tasks)} SKIPPED {skipped}",
+        f"RANDOMIZE {args.randomize or 'none'} PENDING {len(tasks)} SKIPPED {skipped}",
         flush=True,
     )
     failures = []

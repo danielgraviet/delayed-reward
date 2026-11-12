@@ -27,6 +27,10 @@ are accepted. The launcher doesn't read `.env`, so run `set -a; source .env; set
 first. Note: `uv run` doesn't forward a SIGINT that's sent with `kill`, so signal
 the Python child (a terminal Ctrl-C is fine). Steps 3–5 are still open.
 
+**Timing (2026-11-10):** a 500k-step keydoor-hallway trial takes 58–76 min on a
+2-vCPU sandbox. `run_20261110_171314` ran 10 trials in parallel, about 76 min
+wall clock. W&B works from `~/.netrc`, with no extra setup.
+
 **Original checklist:**
 1. `export DAYTONA_API_KEY=...`, then build the snapshot:
    `uv run --group cloud scripts/daytona_snapshot.py`

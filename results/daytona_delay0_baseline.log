@@ -1,0 +1,25 @@
+RUN_DIR /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261110_171314
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 SANDBOXES 10x2vCPU PENDING 10 SKIPPED 0
+Snapshot delayed-reward-cpu-2c4g-357557123c already exists (state=snapshotstate.active)
+STARTED delay=0 trial=0 sandbox=ae488733-f952-4739-b5ae-0bf6ef6310af
+STARTED delay=0 trial=7 sandbox=b538883e-dd06-4ea1-bc7c-aff1aad021d8
+STARTED delay=0 trial=9 sandbox=2c2e5c3e-93a5-4d3d-8ceb-c4e991d1faa4
+STARTED delay=0 trial=1 sandbox=e4c0bc8e-da79-4a15-a660-3dd56f155a8c
+STARTED delay=0 trial=4 sandbox=b2443f7e-8dde-4b6a-a89f-b7d366dc7cfb
+STARTED delay=0 trial=2 sandbox=aff13450-d442-4cb7-97b9-eac892c25e91
+STARTED delay=0 trial=3 sandbox=e4387d0f-3f10-47ab-8e28-d55ac5eb0b4f
+STARTED delay=0 trial=8 sandbox=5f7a5303-e072-4166-a825-cda188ff81ec
+STARTED delay=0 trial=5 sandbox=3ea1111d-60d3-4a7b-8c12-af87cc63118c
+STARTED delay=0 trial=6 sandbox=ee4f3c84-60b7-4aae-9f0c-980de014f959
+DONE delay=0 trial=8 results/run_20261110_171314/delay_0/trial_8 (58.3 min)
+DONE delay=0 trial=2 results/run_20261110_171314/delay_0/trial_2 (58.3 min)
+DONE delay=0 trial=7 results/run_20261110_171314/delay_0/trial_7 (59.1 min)
+DONE delay=0 trial=4 results/run_20261110_171314/delay_0/trial_4 (60.3 min)
+DONE delay=0 trial=9 results/run_20261110_171314/delay_0/trial_9 (63.2 min)
+DONE delay=0 trial=1 results/run_20261110_171314/delay_0/trial_1 (63.2 min)
+DONE delay=0 trial=6 results/run_20261110_171314/delay_0/trial_6 (67.4 min)
+DONE delay=0 trial=0 results/run_20261110_171314/delay_0/trial_0 (70.2 min)
+DONE delay=0 trial=5 results/run_20261110_171314/delay_0/trial_5 (73.4 min)
+DONE delay=0 trial=3 results/run_20261110_171314/delay_0/trial_3 (76.4 min)
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261110_171314/delay_survival.png
+All DQN trials finished under /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261110_171314

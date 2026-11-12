@@ -17,7 +17,9 @@ from delayed_reward.environments.factory import (
     KEYDOOR_ENV_ID,
     create_empty_dqn_env,
     create_keydoor_dqn_env,
+    fixed_layout_source,
 )
+from delayed_reward.environments.layout import LayoutRandomization
 from delayed_reward.masked_dqn_policy import MaskedDQNPolicy
 from delayed_reward.results.saver import (
     create_delay_dir,
@@ -39,6 +41,7 @@ def _make_env(
     render_mode: str | None = None,
     max_steps: int | None = None,
     step_penalty: float = 0.0,
+    randomize: LayoutRandomization = LayoutRandomization(),
 ) -> gym.Env:
     if env_kind == "keydoor":
         return create_keydoor_dqn_env(
@@ -49,7 +52,10 @@ def _make_env(
             render_mode=render_mode,
             max_steps=max_steps,
             step_penalty=step_penalty,
+            randomize=randomize,
         )
+    if randomize.any:
+        raise ValueError("layout randomization is only supported for env_kind='keydoor'")
     return create_empty_dqn_env(
         env_id=env_id, seed=seed, delay=delay, render_mode=render_mode, max_steps=max_steps
     )
@@ -100,7 +106,8 @@ class EpisodeMetricsCallback(BaseCallback):
                     "episode/steps": float(info["episode"]["l"]),
                     "episode/count": float(len(self.rewards)),
                 })
-        if self.num_timesteps % self.log_every == 0:
+        # SB3's train/rollout stats are only gathered for W&B; skip them without a run.
+        if self.wandb_run is not None and self.num_timesteps % self.log_every == 0:
             values = self.model.logger.name_to_value
             metrics.update({
                 key.replace("/", "_"): float(value)
@@ -124,14 +131,14 @@ class GreedyEvalCallback(BaseCallback):
     no exploration, every ``eval_every_episodes`` completed training
     episodes.
 
-    The environment is reseeded to the same fixed layout every episode (see
-    ``ReseedWrapper`` in ``environments/factory.py``), so a greedy policy's
-    rollout is itself deterministic -- there's no maze-layout or start-state
-    randomness left once exploration is off. That's why ``n_eval_episodes``
-    defaults to 1: running it more times would just repeat the identical
-    trajectory. The parameter exists in case a future environment variant
-    randomizes the layout per episode, where repeated eval rollouts would
-    actually differ and averaging them would matter.
+    By default the environment is reseeded to the same fixed layout every
+    episode (see ``ReseedWrapper`` in ``environments/factory.py``), so a greedy
+    policy's rollout is itself deterministic -- there's no layout or
+    start-state randomness left once exploration is off. That's why
+    ``n_eval_episodes`` defaults to 1: running it more times would just repeat
+    the identical trajectory. With layout randomization on (see
+    ``LayoutRandomization``) every eval episode draws a new start/key/door, so
+    raise ``n_eval_episodes`` to average over them.
 
     Online TD updates keep nudging the Q-network after it has already found
     a working greedy policy, and the near-tied Q-values this task's sparse
@@ -242,6 +249,8 @@ def train_trial(
     eval_every_episodes: int | None = 20,
     step_penalty: float = 0.0,
     checkpoint_window: int = 100,
+    randomize: LayoutRandomization = LayoutRandomization(),
+    eval_episodes: int = 1,
 ) -> None:
     if wandb_log_every < 1:
         raise ValueError("wandb_log_every must be >= 1")
@@ -255,6 +264,7 @@ def train_trial(
         subgoal_reward=subgoal_reward,
         max_steps=max_steps,
         step_penalty=step_penalty,
+        randomize=randomize,
     )
     env = gym.wrappers.RecordEpisodeStatistics(env)
     config: dict[str, object] = {
@@ -264,6 +274,9 @@ def train_trial(
         "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
         "reward_attribution": reward_attribution,
         "step_penalty": step_penalty if env_kind == "keydoor" else None,
+        "layout_randomization": randomize.names() if env_kind == "keydoor" else None,
+        "fixed_layout": fixed_layout_source(env_id) if env_kind == "keydoor" else None,
+        "eval_episodes": eval_episodes,
     }
     wandb_run = start_wandb_run(
         enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
@@ -283,10 +296,12 @@ def train_trial(
             subgoal_reward=subgoal_reward,
             max_steps=max_steps,
             step_penalty=step_penalty,
+            randomize=randomize,
         )
         eval_callback = GreedyEvalCallback(
             eval_env=eval_env,
             eval_every_episodes=eval_every_episodes,
+            n_eval_episodes=eval_episodes,
             max_steps=max_steps or 2000,
             best_window=checkpoint_window,
         )
@@ -341,6 +356,9 @@ def train_trial(
         "subgoal_reward": subgoal_reward if env_kind == "keydoor" else None,
         "reward_attribution": reward_attribution,
         "step_penalty": step_penalty if env_kind == "keydoor" else None,
+        "layout_randomization": randomize.names() if env_kind == "keydoor" else None,
+        "fixed_layout": fixed_layout_source(env_id) if env_kind == "keydoor" else None,
+        "eval_episodes": eval_episodes,
         "trial": trial,
         "seed": seed + trial,
         "total_timesteps": total_timesteps,
@@ -386,6 +404,7 @@ def train_trial(
         max_steps=max_steps or 200,
         path=trial_dir / "policy.gif",
         step_penalty=step_penalty,
+        randomize=randomize,
     )
     recent = callback.rewards[-100:]
     print(
@@ -409,6 +428,7 @@ def _save_policy_gif(
     max_steps: int,
     path: Path,
     step_penalty: float = 0.0,
+    randomize: LayoutRandomization = LayoutRandomization(),
 ) -> None:
     env = _make_env(
         env_kind=env_kind,
@@ -419,6 +439,7 @@ def _save_policy_gif(
         render_mode="rgb_array",
         max_steps=max_steps,
         step_penalty=step_penalty,
+        randomize=randomize,
     )
     frames: list[Image.Image] = []
     try:
@@ -434,6 +455,39 @@ def _save_policy_gif(
         env.close()
     path.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(path, save_all=True, append_images=frames[1:], duration=200, loop=0)
+
+
+def add_layout_args(parser: argparse.ArgumentParser) -> None:
+    """Add the layout-randomization and eval-episode options shared by the DQN CLIs."""
+    parser.add_argument(
+        "--randomize",
+        nargs="+",
+        choices=LayoutRandomization.element_names(),
+        default=[],
+        metavar="ELEMENT",
+        help=(
+            "Re-sample these key-door layout elements uniformly every episode: "
+            f"{', '.join(LayoutRandomization.element_names())} (door = wall column + door row). "
+            "Others stay at the env's fixed positions. Needs a RectangularDoorKeyEnv env id, "
+            "e.g. MiniGrid-DoorKey-Hallway-20x6-v0 (--env-kind keydoor only)."
+        ),
+    )
+    parser.add_argument(
+        "--eval-episodes",
+        type=int,
+        default=1,
+        help="Greedy episodes averaged per eval; raise it when using --randomize",
+    )
+
+
+def layout_from_args(args: argparse.Namespace) -> LayoutRandomization:
+    """Validate and return the layout randomization chosen by ``add_layout_args`` options."""
+    if args.eval_episodes < 1:
+        raise SystemExit("eval-episodes must be >= 1")
+    randomize = LayoutRandomization.from_names(args.randomize)
+    if randomize.any and args.env_kind != "keydoor":
+        raise SystemExit("--randomize requires --env-kind keydoor")
+    return randomize
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -496,6 +550,7 @@ def build_parser() -> argparse.ArgumentParser:
             "N completed training episodes. Pass 0 to disable."
         ),
     )
+    add_layout_args(parser)
     return parser
 
 
@@ -507,6 +562,7 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("delay must be >= 0 and max-steps must be >= 1")
     if args.step_penalty < 0 or args.checkpoint_window < 1:
         raise SystemExit("step-penalty must be >= 0 and checkpoint-window must be >= 1")
+    randomize = layout_from_args(args)
     env_id = args.env_id or (KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID)
     run_dir = args.run_dir or create_run_dir(args.results_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -535,6 +591,8 @@ def main(argv: list[str] | None = None) -> None:
             eval_every_episodes=args.eval_every_episodes or None,
             step_penalty=args.step_penalty,
             checkpoint_window=args.checkpoint_window,
+            randomize=randomize,
+            eval_episodes=args.eval_episodes,
         )
 
 
