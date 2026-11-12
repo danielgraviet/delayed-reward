@@ -1,0 +1,9 @@
+RUN_DIR /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg112/none
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 2 SANDBOXES 2x2vCPU PENDING 2 SKIPPED 0
+Snapshot delayed-reward-cpu-2c4g-357557123c already exists (state=snapshotstate.active)
+STARTED delay=0 trial=1 sandbox=3f009481-c81c-4db4-a28f-bd995227c1c0
+STARTED delay=0 trial=0 sandbox=a3900be3-9bb9-4f89-b908-be9e77a0ae34
+DONE delay=0 trial=1 results/run_20261112_dtg112/none/delay_0/trial_1 (1.0 min)
+DONE delay=0 trial=0 results/run_20261112_dtg112/none/delay_0/trial_0 (1.0 min)
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg112/none/delay_survival.png
+All DQN trials finished under /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg112/none

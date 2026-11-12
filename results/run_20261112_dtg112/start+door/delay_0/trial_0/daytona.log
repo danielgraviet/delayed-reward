@@ -1,0 +1,5 @@
+RUN_DIR /root/results/start+door
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 2 WORKERS 1 RANDOMIZE ['start', 'door'] PENDING 1 SKIPPED 0
+trial=0 episodes=21 last_100_mean_return=-0.157 device=cpu path=/root/results/start+door/delay_0/trial_0
+DONE delay=0 trial=0 /root/results/start+door/delay_0/trial_0
+All DQN trials finished under /root/results/start+door
