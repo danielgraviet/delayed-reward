@@ -30,6 +30,14 @@ class EvalCheckpoint:
 class EpisodeMetricsCallback(BaseCallback):
     """Collect episode metrics and optionally relabel delayed subgoal rewards.
 
+    With ``RewardAttribution.ORIGIN``, a delayed subgoal reward is moved in the
+    replay buffer from the transition where it arrived back onto the key-pickup
+    transition that earned it. SB3 calls ``on_step`` *before* it stores the
+    step's transition, so the current transition is not in the buffer yet: it
+    will land at ``buffer.pos``, with the reward taken from ``locals["rewards"]``.
+    The arriving reward is therefore removed from that array in place, and added
+    to the pickup transition, which an earlier step already stored.
+
     SB3's ``train/`` and ``rollout/`` stats are only gathered when logging to W&B.
     """
 
@@ -44,32 +52,37 @@ class EpisodeMetricsCallback(BaseCallback):
         self.reward_attribution = RewardAttribution(reward_attribution)
         self.rewards: list[float] = []
         self.steps: list[int] = []
-        self._transition_indices: dict[int, int] = {}
+        self._pickup_slots: dict[int, int] = {}
         self.wandb_run = wandb_run
         self.log_every = log_every
+
+    def _move_delayed_rewards_to_origin(self, infos: list[dict]) -> None:
+        buffer = cast(OffPolicyAlgorithm, self.model).replay_buffer
+        if buffer is None:
+            return
+        rewards = self.locals["rewards"]
+        for env_index, info in enumerate(infos):
+            step = info.get("environment_step")
+            if step is None:
+                continue
+            if info.get("subgoal_reached"):
+                self._pickup_slots[int(step)] = buffer.pos
+            if not info.get("subgoal_reward_delivered"):
+                continue
+            origin = int(info["subgoal_reward_origin_step"])
+            if origin == int(step):
+                continue
+            if int(step) - origin >= buffer.buffer_size or origin not in self._pickup_slots:
+                raise RuntimeError(f"origin transition {origin} is no longer in replay")
+            amount = float(info["subgoal_reward_amount"])
+            rewards[env_index] -= amount
+            buffer.rewards[self._pickup_slots.pop(origin), env_index] += amount
 
     def _on_step(self) -> bool:
         infos = self.locals["infos"]
         metrics: dict[str, float] = {}
-        buffer = cast(OffPolicyAlgorithm, self.model).replay_buffer
-        if buffer is not None:
-            current_index = (buffer.pos - 1) % buffer.buffer_size
-            for info in infos:
-                step = info.get("environment_step")
-                if step is not None:
-                    self._transition_indices[int(step)] = current_index
-                    oldest = int(step) - buffer.buffer_size
-                    self._transition_indices = {
-                        key: value for key, value in self._transition_indices.items() if key > oldest
-                    }
-                if self.reward_attribution is RewardAttribution.ORIGIN and "subgoal_reward_origin_step" in info:
-                    origin = int(info["subgoal_reward_origin_step"])
-                    origin_index = self._transition_indices.get(origin)
-                    if origin_index is None:
-                        raise RuntimeError(f"origin transition {origin} is no longer in replay")
-                    amount = float(info["subgoal_reward_amount"])
-                    buffer.rewards[current_index, 0] -= amount
-                    buffer.rewards[origin_index, 0] += amount
+        if self.reward_attribution is RewardAttribution.ORIGIN:
+            self._move_delayed_rewards_to_origin(infos)
         for done, info in zip(self.locals["dones"], infos, strict=True):
             if done and "episode" in info:
                 self.rewards.append(float(info["episode"]["r"]))

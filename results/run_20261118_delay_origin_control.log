@@ -1,0 +1,48 @@
+RUN_DIR /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261118_delay_origin_control
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [1, 10] TRIALS 10 SANDBOXES 20x2vCPU PENDING 20 SKIPPED 0
+Snapshot delayed-reward-cpu-2c4g-f657627219 already exists (state=snapshotstate.active)
+STARTED delay=1 trial=6 sandbox=1312a9ea-b552-4529-b66a-72b2c88a1ebf
+STARTED delay=10 trial=5 sandbox=bc40a8e0-e1bb-4653-be9d-81e8fde872dc
+STARTED delay=1 trial=0 sandbox=b124050d-5511-4911-968b-1ea1f17e84f2
+STARTED delay=10 trial=0 sandbox=53d0c1f1-01a4-48c5-931a-91ce9f897a4c
+STARTED delay=10 trial=8 sandbox=a284fcd9-1a44-4569-8d55-5162ef2c0c3e
+STARTED delay=10 trial=9 sandbox=9b0e4b6c-530b-4662-a12f-b73c3a62f021
+STARTED delay=10 trial=1 sandbox=7188ff48-55ab-4d73-beaa-0c61a0f5bbcb
+STARTED delay=1 trial=5 sandbox=fbb030e0-1511-49a2-92e4-d2a508cbb015
+STARTED delay=1 trial=7 sandbox=78dcd99b-9fd2-4718-804a-ce591f0e33bb
+STARTED delay=1 trial=4 sandbox=7f4fd7a9-4647-46d7-a6c1-2ebb724aa187
+STARTED delay=10 trial=2 sandbox=d378e7c9-290d-4e96-a4c0-188d4d5c7f2c
+STARTED delay=1 trial=3 sandbox=89ed9bc5-3cae-4851-87e5-764024a6781e
+STARTED delay=10 trial=3 sandbox=4700373c-6e69-4e38-88bc-881644c4bbc0
+STARTED delay=10 trial=7 sandbox=7da6ac13-10a5-4b68-a2a5-4ecdb98b14a3
+STARTED delay=10 trial=4 sandbox=b941d602-d7eb-4afe-b451-79c54e058d3b
+STARTED delay=1 trial=9 sandbox=c0855259-c661-498a-b68f-ed20936ed11a
+STARTED delay=10 trial=6 sandbox=05f76b12-0e7b-4968-bbbb-91ee42e335f9
+STARTED delay=1 trial=2 sandbox=c2fd54f2-d0aa-4379-aa6f-feb68b487591
+STARTED delay=1 trial=1 sandbox=be520443-d566-45d3-9680-bc1ff8bad60c
+STARTED delay=1 trial=8 sandbox=828aaf86-a5a3-4ef5-9c98-37a181fcc365
+DONE delay=10 trial=9 results/run_20261118_delay_origin_control/delay_10/trial_9 (48.7 min)
+DONE delay=1 trial=7 results/run_20261118_delay_origin_control/delay_1/trial_7 (48.7 min)
+DONE delay=10 trial=1 results/run_20261118_delay_origin_control/delay_10/trial_1 (48.7 min)
+DONE delay=1 trial=4 results/run_20261118_delay_origin_control/delay_1/trial_4 (48.7 min)
+DONE delay=10 trial=3 results/run_20261118_delay_origin_control/delay_10/trial_3 (49.1 min)
+DONE delay=10 trial=6 results/run_20261118_delay_origin_control/delay_10/trial_6 (49.1 min)
+DONE delay=1 trial=6 results/run_20261118_delay_origin_control/delay_1/trial_6 (49.2 min)
+DONE delay=10 trial=0 results/run_20261118_delay_origin_control/delay_10/trial_0 (49.2 min)
+DONE delay=10 trial=5 results/run_20261118_delay_origin_control/delay_10/trial_5 (49.3 min)
+DONE delay=10 trial=7 results/run_20261118_delay_origin_control/delay_10/trial_7 (49.2 min)
+DONE delay=1 trial=2 results/run_20261118_delay_origin_control/delay_1/trial_2 (49.2 min)
+DONE delay=10 trial=8 results/run_20261118_delay_origin_control/delay_10/trial_8 (49.3 min)
+DONE delay=10 trial=2 results/run_20261118_delay_origin_control/delay_10/trial_2 (49.3 min)
+DONE delay=1 trial=3 results/run_20261118_delay_origin_control/delay_1/trial_3 (49.3 min)
+DONE delay=1 trial=1 results/run_20261118_delay_origin_control/delay_1/trial_1 (49.2 min)
+DONE delay=1 trial=8 results/run_20261118_delay_origin_control/delay_1/trial_8 (49.2 min)
+DONE delay=1 trial=5 results/run_20261118_delay_origin_control/delay_1/trial_5 (49.3 min)
+DONE delay=1 trial=9 results/run_20261118_delay_origin_control/delay_1/trial_9 (49.3 min)
+DONE delay=1 trial=0 results/run_20261118_delay_origin_control/delay_1/trial_0 (49.3 min)
+DONE delay=10 trial=4 results/run_20261118_delay_origin_control/delay_10/trial_4 (49.3 min)
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261118_delay_origin_control/analysis.json
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261118_delay_origin_control/time_to_solve.png
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261118_delay_origin_control/success_rate.png
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261118_delay_origin_control/trial_timelines.png
+All DQN trials finished under /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261118_delay_origin_control

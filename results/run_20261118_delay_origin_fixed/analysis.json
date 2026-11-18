@@ -1,0 +1,45 @@
+{
+  "sustain_evals": 3,
+  "delays": [
+    {
+      "delay": 1,
+      "n_trials": 10,
+      "n_solved": 6,
+      "median_time_to_solve": 269296,
+      "solve_times": [
+        208380,
+        260254,
+        196445,
+        173242,
+        null,
+        295243,
+        null,
+        null,
+        269296,
+        null
+      ],
+      "final_success_rate": 0.5,
+      "mean_stability": 0.8735481878315366
+    },
+    {
+      "delay": 10,
+      "n_trials": 10,
+      "n_solved": 7,
+      "median_time_to_solve": 309209,
+      "solve_times": [
+        373182,
+        230293,
+        186746,
+        288862,
+        null,
+        217096,
+        null,
+        377768,
+        null,
+        309209
+      ],
+      "final_success_rate": 0.4,
+      "mean_stability": 0.6900121941045251
+    }
+  ]
+}

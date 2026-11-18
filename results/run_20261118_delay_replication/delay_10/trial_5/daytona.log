@@ -1,0 +1,7 @@
+RUN_DIR /root/results/run_20261118_delay_replication
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [10] TRIALS 10 WORKERS 1 RANDOMIZE none PENDING 1 SKIPPED 0
+/usr/local/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=5 episodes=497 last_100_mean_return=-0.576 device=cpu path=/root/results/run_20261118_delay_replication/delay_10/trial_5
+DONE delay=10 trial=5 /root/results/run_20261118_delay_replication/delay_10/trial_5
+All DQN trials finished under /root/results/run_20261118_delay_replication
