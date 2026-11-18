@@ -7,8 +7,8 @@ matching ``summary.json`` in the local run directory are skipped. Each pending
 trial runs ``delayed_reward.cli.dqn_sweep --trial-ids N`` in its own sandbox, and the
 finished ``trial_N/`` folder is downloaded into the local run directory.
 
-Sandboxes run on CPU (``device`` is recorded as ``cpu`` in each summary), so
-don't mix these trials with GPU-box trials in one run directory.
+Sandboxes run on CPU (``device`` is recorded as ``cpu`` in each summary); keep a
+run directory to one kind of machine so timings stay comparable.
 
 Examples (needs DAYTONA_API_KEY):
     uv run --group cloud delayed-reward-daytona --env-kind keydoor \\

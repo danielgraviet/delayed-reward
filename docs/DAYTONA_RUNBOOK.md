@@ -1,7 +1,7 @@
 # Daytona CPU sweep runbook
 
 The DQN workload (128×128 MLP, batch 64) is bound by env stepping on the CPU,
-so trials can run on Daytona CPU sandboxes instead of the GPU box. Each pending
+so trials run on Daytona CPU sandboxes. Each pending
 `(delay, trial)` gets its own sandbox. Finished `trial_N/` folders are
 downloaded into a local `results/run_*` directory, which uses the same layout
 and resume rules as `delayed-reward-dqn-sweep`.
@@ -44,15 +44,13 @@ wall clock. W&B works from `~/.netrc`, with no extra setup.
    Check that `trial_*/summary.json` downloaded, `config.device == "cpu"`, and
    that `daytona.log` is present. Run `--cleanup` afterwards to confirm no
    sandboxes are left.
-3. Benchmark: time the 20k-step smoke trial against the same settings on the GPU
-   box (`ssh gpu`, `delayed-reward-dqn-sweep ... --timesteps 20000 --workers 1`).
-   If a 2-vCPU sandbox is much slower, try `--cpu 1` (more sandboxes per quota)
-   or `--cpu 4`. Each size gets its own snapshot, built automatically.
+3. Sizing: if a 2-vCPU sandbox is too slow, try `--cpu 1` (more sandboxes per
+   quota) or `--cpu 4`. Each size gets its own snapshot, built automatically.
 4. Check the Tier 3 vCPU quota in the Daytona dashboard and size
    `--max-sandboxes` so that `max-sandboxes × cpu` stays under it.
 5. Full sweep, e.g. the delays from `run_20261102_164946` (keydoor hallway,
    `--step-penalty 0.001`, 500k timesteps, 10 trials) with `--wandb --max-sandboxes 80`.
-   Start it in a new run directory. Don't resume GPU runs on Daytona.
+   Start it in a new run directory.
 
 **Open questions / things to verify on first real run:**
 - Unverified SDK behaviour: whether `ttl_minutes` and the `labels` filter in
@@ -107,5 +105,5 @@ uv run --group cloud delayed-reward-daytona \
   (deletes everything labelled `app=delayed-reward`).
 - Failed trial logs go to `RUN_DIR/_daytona_logs/`. `--keep-failed` leaves
   those sandboxes up for debugging (delete them afterwards).
-- Sandboxes record `device: cpu`. Don't mix them with GPU-box trials in one run
-  directory.
+- Sandboxes record `device: cpu` in each summary. Keep a run directory to one
+  kind of machine so timings stay comparable.

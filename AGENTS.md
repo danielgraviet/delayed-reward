@@ -1,13 +1,17 @@
 # Repository agent notes
 
-When working on experiments on the GPU box, read [docs/GPU_RUNBOOK.md](docs/GPU_RUNBOOK.md)
-first. In particular, the normal delayed-reward CLI runs trials sequentially;
-use `delayed-reward-sweep` (tabular) or `delayed-reward-dqn-sweep` for multi-trial sweeps, check the GPU checkout's
-working tree before changes, and preserve existing run directories and local
-modifications.
+## Running experiments
 
-For CPU-bound DQN sweeps on Daytona sandboxes instead of the GPU box, see
+DQN sweeps run on Daytona CPU sandboxes, one trial per sandbox: see
 [docs/DAYTONA_RUNBOOK.md](docs/DAYTONA_RUNBOOK.md) (`delayed-reward-daytona`).
+For small local runs, use the parallel launchers, `delayed-reward-dqn-sweep` and
+`delayed-reward-sweep` (tabular); the `delayed-reward-dqn` and `delayed-reward`
+CLIs run trials one after another.
+
+Every sweep keeps all delays and trials in one run directory. To resume an
+interrupted run, pass `--run-dir` with the original settings: finished trials are
+skipped, and changed settings are refused. To change settings, start a new run
+directory. Never delete or overwrite existing run directories under `results/`.
 
 ## Code layout
 
