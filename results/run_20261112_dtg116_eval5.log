@@ -1,0 +1,26 @@
+RUN_DIR /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg116_eval5
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 SANDBOXES 10x2vCPU PENDING 10 SKIPPED 0
+Snapshot delayed-reward-cpu-2c4g-357557123c already exists (state=snapshotstate.active)
+STARTED delay=0 trial=4 sandbox=c6aa954b-2d7a-4f85-9f86-ad6790b25ad4
+STARTED delay=0 trial=2 sandbox=045aa1ce-50a7-4a29-8bdf-66e3b5ae6ebc
+STARTED delay=0 trial=6 sandbox=c8ee5965-1934-4f49-ad84-73e8b716c894
+STARTED delay=0 trial=9 sandbox=62def06b-2433-4a23-871a-0a8f0d1cfdbd
+STARTED delay=0 trial=5 sandbox=a9def855-0361-4b07-8584-49eb882f579b
+STARTED delay=0 trial=0 sandbox=b4aa4b89-1d28-4ed5-bc2b-b9819ac5b603
+STARTED delay=0 trial=7 sandbox=03078876-8d47-4d6a-942b-149c9322f35d
+STARTED delay=0 trial=1 sandbox=03c5ac86-2f09-4c17-a517-7aa58d07f337
+STARTED delay=0 trial=3 sandbox=0c0c257a-d0e0-4c14-aa1a-062422703d43
+STARTED delay=0 trial=8 sandbox=f638073f-d55d-45ee-aaeb-fe2017146b2e
+DONE delay=0 trial=4 results/run_20261112_dtg116_eval5/delay_0/trial_4 (58.1 min)
+DONE delay=0 trial=9 results/run_20261112_dtg116_eval5/delay_0/trial_9 (58.2 min)
+DONE delay=0 trial=6 results/run_20261112_dtg116_eval5/delay_0/trial_6 (58.2 min)
+DONE delay=0 trial=7 results/run_20261112_dtg116_eval5/delay_0/trial_7 (58.3 min)
+DONE delay=0 trial=3 results/run_20261112_dtg116_eval5/delay_0/trial_3 (58.3 min)
+DONE delay=0 trial=1 results/run_20261112_dtg116_eval5/delay_0/trial_1 (58.3 min)
+DONE delay=0 trial=8 results/run_20261112_dtg116_eval5/delay_0/trial_8 (58.1 min)
+packet queue is empty, aborting
+DONE delay=0 trial=2 results/run_20261112_dtg116_eval5/delay_0/trial_2 (59.1 min)
+DONE delay=0 trial=5 results/run_20261112_dtg116_eval5/delay_0/trial_5 (59.1 min)
+DONE delay=0 trial=0 results/run_20261112_dtg116_eval5/delay_0/trial_0 (139.0 min)
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg116_eval5/delay_survival.png
+All DQN trials finished under /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg116_eval5
