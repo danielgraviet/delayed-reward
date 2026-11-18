@@ -72,11 +72,13 @@ def save_eval_metrics(
     train_timesteps: Sequence[int],
     returns: Sequence[float],
     steps: Sequence[float],
+    goal_rates: Sequence[float],
     optimal: Sequence[bool] | None = None,
 ) -> None:
     """Write periodic exploration-off evaluation results to ``eval_metrics.csv``.
 
-    With ``optimal`` (one flag per checkpoint), an ``optimal`` column is added.
+    ``goal_rate`` is the share of that checkpoint's eval episodes that reached
+    the goal. With ``optimal`` (one flag per checkpoint), an ``optimal`` column is added.
 
     Unlike ``metrics.csv`` (one row per training episode, taken while the
     agent is still exploring), this is one row per evaluation checkpoint:
@@ -85,8 +87,8 @@ def save_eval_metrics(
     metrics_path = run_dir / "eval_metrics.csv"
     with metrics_path.open("w", newline="") as fh:
         writer = csv.writer(fh)
-        header = ["train_episode", "train_timestep", "return", "steps"]
-        columns = [train_episodes, train_timesteps, returns, steps]
+        header = ["train_episode", "train_timestep", "return", "steps", "goal_rate"]
+        columns = [train_episodes, train_timesteps, returns, steps, goal_rates]
         if optimal is not None:
             header.append("optimal")
             columns.append([int(flag) for flag in optimal])

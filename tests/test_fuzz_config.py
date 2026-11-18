@@ -105,6 +105,7 @@ TABULAR_VALUES = {
     "seed": ANY_INT,
     "trial": ANY_INT,
     "log_every": ANY_INT,
+    "eval_every_episodes": ANY_INT,
 }
 
 
@@ -211,7 +212,6 @@ TABULAR_FLAGS = {
     "--log-every": st.sampled_from(["100", "0"]),
     "--max-steps": st.sampled_from(["50", "0"]),
     "--delay": st.sampled_from(["0", "-1", "7"]),
-    "--onset-threshold": st.sampled_from(["0.5", "2", "-1", "nan"]),
 }
 
 

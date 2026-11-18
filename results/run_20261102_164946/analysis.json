@@ -1,0 +1,185 @@
+{
+  "sustain_evals": 3,
+  "delays": [
+    {
+      "delay": 0,
+      "n_trials": 10,
+      "n_solved": 7,
+      "median_time_to_solve": 290353,
+      "solve_times": [
+        null,
+        246815,
+        460008,
+        null,
+        130995,
+        265564,
+        316480,
+        null,
+        179171,
+        290353
+      ],
+      "final_success_rate": 0.5,
+      "mean_stability": 0.6689335336215412
+    },
+    {
+      "delay": 1,
+      "n_trials": 10,
+      "n_solved": 3,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        469229,
+        201933,
+        null,
+        null,
+        null,
+        null,
+        null,
+        454092,
+        null
+      ],
+      "final_success_rate": 0.1,
+      "mean_stability": 0.2875473687973688
+    },
+    {
+      "delay": 2,
+      "n_trials": 10,
+      "n_solved": 3,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        null,
+        283497,
+        310966,
+        null,
+        null,
+        null,
+        null,
+        293280,
+        null
+      ],
+      "final_success_rate": 0.2,
+      "mean_stability": 0.4987659698025551
+    },
+    {
+      "delay": 5,
+      "n_trials": 10,
+      "n_solved": 2,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        null,
+        null,
+        308044,
+        null,
+        null,
+        null,
+        null,
+        329173,
+        null
+      ],
+      "final_success_rate": 0.2,
+      "mean_stability": 0.2573412698412698
+    },
+    {
+      "delay": 10,
+      "n_trials": 10,
+      "n_solved": 3,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        null,
+        329659,
+        228214,
+        null,
+        null,
+        null,
+        null,
+        225168,
+        null
+      ],
+      "final_success_rate": 0.0,
+      "mean_stability": 0.29221276141566
+    },
+    {
+      "delay": 25,
+      "n_trials": 10,
+      "n_solved": 2,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        null,
+        474951,
+        null,
+        312154,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "final_success_rate": 0.2,
+      "mean_stability": 0.21617957351552103
+    },
+    {
+      "delay": 50,
+      "n_trials": 10,
+      "n_solved": 4,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        null,
+        null,
+        324286,
+        478711,
+        178004,
+        null,
+        null,
+        null,
+        342811
+      ],
+      "final_success_rate": 0.2,
+      "mean_stability": 0.30002127951782814
+    },
+    {
+      "delay": 100,
+      "n_trials": 10,
+      "n_solved": 4,
+      "median_time_to_solve": null,
+      "solve_times": [
+        380602,
+        null,
+        278695,
+        172322,
+        null,
+        null,
+        null,
+        null,
+        477318,
+        null
+      ],
+      "final_success_rate": 0.1,
+      "mean_stability": 0.3933944613306316
+    },
+    {
+      "delay": 200,
+      "n_trials": 10,
+      "n_solved": 3,
+      "median_time_to_solve": null,
+      "solve_times": [
+        null,
+        null,
+        268457,
+        null,
+        464438,
+        402367,
+        null,
+        null,
+        null,
+        null
+      ],
+      "final_success_rate": 0.3,
+      "mean_stability": 0.5030629494996873
+    }
+  ]
+}

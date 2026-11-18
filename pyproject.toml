@@ -42,7 +42,11 @@ delayed-reward-dqn-sweep = "delayed_reward.cli.dqn_sweep:main"
 delayed-reward-daytona = "delayed_reward.cli.daytona:main"
 delayed-reward-daytona-snapshot = "delayed_reward.cli.daytona_snapshot:main"
 delayed-reward-replot = "delayed_reward.cli.replot:main"
+delayed-reward-inspect = "delayed_reward.cli.inspect_run:main"
 delayed-reward-eval-distractors = "delayed_reward.cli.eval_distractors:main"
+
+[tool.uv]
+default-groups = ["dev", "cloud"]
 
 [tool.ruff]
 line-length = 120

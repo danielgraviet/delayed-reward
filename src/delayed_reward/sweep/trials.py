@@ -1,4 +1,4 @@
-"""Shared sweep mechanics: trial-directory bookkeeping, local process pool, final plot."""
+"""Shared sweep mechanics: planning, trial-directory bookkeeping, local process pool, final charts."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from delayed_reward.config import TrialConfig, config_mismatches
-from delayed_reward.results.plotting import plot_delay_survival
+from delayed_reward.results.learning_charts import plot_run_overview
 from delayed_reward.results.saver import create_delay_dir
 
 
@@ -70,9 +70,10 @@ def run_in_processes[T](
     return failures
 
 
-def plot_survival_if_any(run_dir: Path, *, smooth_window: int, onset_threshold: float) -> None:
-    """Write the run's delay-survival plot once at least one trial has metrics."""
-    if not any(run_dir.glob("delay_*/trial_*/metrics.csv")):
-        return
-    plot_path = plot_delay_survival(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold)
-    print(f"PLOT {plot_path.resolve()}", flush=True)
+def write_run_overview(run_dir: Path) -> None:
+    """Write ``analysis.json`` and the learning charts once at least one trial recorded greedy evals."""
+    paths = plot_run_overview(run_dir)
+    if not paths:
+        print("PLOT skipped: no trial recorded greedy evals", flush=True)
+    for path in paths:
+        print(f"PLOT {path.resolve()}", flush=True)

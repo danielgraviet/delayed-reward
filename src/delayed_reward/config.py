@@ -308,8 +308,10 @@ class TabularTrialConfig:
     seed: int = 0
     trial: int = 0
     log_every: int = 100
+    eval_every_episodes: int = 100
 
     def __post_init__(self) -> None:
+        _at_least("eval_every_episodes", self.eval_every_episodes, 1)
         if self.delay < 0:
             raise ValueError(f"delay must be >= 0, got {self.delay}")
         if self.max_steps is not None and self.max_steps < 1:
@@ -349,6 +351,7 @@ class TabularTrialConfig:
             "policy_seed": self.policy_seed,
             "trial": self.trial,
             "log_every": self.log_every,
+            "eval_every_episodes": self.eval_every_episodes,
         }
 
 

@@ -1,13 +1,24 @@
 # delayed-reward
 
-This project measures how much delay between reaching the goal and receiving
-reward tabular Q-learning can tolerate. Each delay is run across independent
-trials to see whether the learner still discovers a successful policy.
+This project measures how much delay between an achievement and its reward
+tabular Q-learning and DQN can tolerate on MiniGrid tasks. Each delay is run
+across independent trials to see whether the learner still finds a policy that
+solves the task.
 
-Every run's `delay_survival.png` shows, by training episode, the percentage of
-trials at each delay that have passed. A trial passes when its rolling mean
-return reaches 0.5 over 100 episodes. The chart makes it easy to compare both
-how quickly each delay is learned and how many trials learn it by the end.
+Learning is judged from periodic greedy (exploration-off) evaluations. A trial
+has *solved* the task once three evaluations in a row reach the goal. Every run
+writes:
+
+- `time_to_solve.png`: one row per delay, one dot per trial at the training
+  timestep it solved the task; hollow marks are trials that never did.
+- `success_rate.png`: for each delay, the share of trials whose greedy policy
+  reaches the goal at each point in training.
+- `trial_timelines.png`: every evaluation of every trial, to spot policies that
+  solve the task and then lose it.
+- `analysis.json`: the same numbers per delay.
+
+`uv run delayed-reward-inspect RUN_DIR` prints that summary as a table, and
+`uv run delayed-reward-replot RUN_DIR` regenerates the charts for an existing run.
 
 ## Weights & Biases tracking
 

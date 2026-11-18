@@ -8,7 +8,7 @@ from pathlib import Path
 from delayed_reward.config import TabularTrialConfig, WandbSettings
 from delayed_reward.environments.registry import DEFAULT_ENV_ID
 from delayed_reward.experiments.tabular import train_one_trial
-from delayed_reward.results.plotting import DEFAULT_ONSET_THRESHOLD, plot_delay_survival
+from delayed_reward.results.learning_charts import plot_run_overview
 from delayed_reward.results.saver import create_delay_dir, create_run_dir
 
 
@@ -25,6 +25,7 @@ def add_tabular_args(parser: argparse.ArgumentParser) -> None:
         help="Base seed. Env layout uses this. Trial t uses policy seed base+t+10003*delay",
     )
     parser.add_argument("--log-every", type=int, default=100)
+    parser.add_argument("--eval-every-episodes", type=int, default=100, help="Greedy (exploration-off) eval cadence")
     parser.add_argument("--env-id", default=DEFAULT_ENV_ID)
     parser.add_argument(
         "--max-steps",
@@ -43,12 +44,6 @@ def add_tabular_args(parser: argparse.ArgumentParser) -> None:
         metavar="N",
         help="One or more reward delays in steps after goal contact (0 = immediate). Example: --delay 0 2 5 10",
     )
-    parser.add_argument(
-        "--onset-threshold",
-        type=float,
-        default=DEFAULT_ONSET_THRESHOLD,
-        help="Rolling-mean return that counts as learning onset",
-    )
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument("--wandb", action="store_true", help="Log each trial to Weights & Biases")
     parser.add_argument("--wandb-project", default="delayed-reward")
@@ -60,8 +55,6 @@ def tabular_config_from_args(args: argparse.Namespace) -> tuple[TabularTrialConf
     delays = list(dict.fromkeys(args.delay))
     if any(delay < 0 for delay in delays):
         raise SystemExit("delay values must be >= 0")
-    if not 0.0 <= args.onset_threshold <= 1.0:
-        raise SystemExit("onset-threshold must be in [0, 1]")
     try:
         template = TabularTrialConfig(
             env_id=args.env_id,
@@ -72,6 +65,7 @@ def tabular_config_from_args(args: argparse.Namespace) -> tuple[TabularTrialConf
             epsilon=args.epsilon,
             seed=args.seed,
             log_every=args.log_every,
+            eval_every_episodes=args.eval_every_episodes,
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
@@ -117,9 +111,9 @@ def main(argv: list[str] | None = None) -> None:
     for config in configs:
         train_one_trial(config, create_delay_dir(run_dir, config.delay), wandb=wandb)
 
-    plot_path = plot_delay_survival(run_dir, smooth_window=template.log_every, onset_threshold=args.onset_threshold)
     print(f"\nAll delays finished. Results under {run_dir.resolve()}")
-    print(f"Delay survival plot: {plot_path.resolve()}")
+    for path in plot_run_overview(run_dir):
+        print(f"Chart: {path.resolve()}")
 
 
 if __name__ == "__main__":

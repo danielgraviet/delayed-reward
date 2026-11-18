@@ -35,7 +35,7 @@ from delayed_reward.sweep.daytona import (
 )
 from delayed_reward.sweep.daytona_snapshot import ensure_snapshot
 from delayed_reward.sweep.dqn import summarize_time_to_optimal
-from delayed_reward.sweep.trials import plan_tasks, plot_survival_if_any
+from delayed_reward.sweep.trials import plan_tasks, write_run_overview
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -141,7 +141,7 @@ def main() -> None:
         launcher.delete_all_live()
 
     if not sweep_args.no_plot:
-        plot_survival_if_any(run_dir, smooth_window=100, onset_threshold=sweep_args.onset_threshold)
+        write_run_overview(run_dir)
     summarize_time_to_optimal(run_dir)
     if failures:
         raise SystemExit(f"{len(failures)} trial(s) failed; resume with --run-dir {run_dir}")

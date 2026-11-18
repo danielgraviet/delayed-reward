@@ -150,16 +150,18 @@ class GreedyEvalCallback(BaseCallback):
         self.eval_timesteps: list[int] = []
         self.eval_returns: list[float] = []
         self.eval_steps: list[float] = []
+        self.eval_goal_rates: list[float] = []
         self.eval_optimal: list[bool] = []
         self._optimal_streak = 0
         self.first_optimal: dict[str, int] | None = None
         self.sustained_optimal: dict[str, int] | None = None
         self._window: deque[EvalCheckpoint] = deque(maxlen=spec.checkpoint_window)
 
-    def _run_eval(self) -> tuple[float, float, bool]:
-        """Return (mean return, mean length, whether every episode was an optimal solve)."""
+    def _run_eval(self) -> tuple[float, float, float, bool]:
+        """Return (mean return, mean length, share of episodes reaching the goal, every episode optimal)."""
         returns: list[float] = []
         lengths: list[int] = []
+        goals = 0
         all_optimal = self.optimal_steps is not None
         for _ in range(self.n_eval_episodes):
             observation, _info = self.eval_env.reset()
@@ -176,20 +178,22 @@ class GreedyEvalCallback(BaseCallback):
                     break
             returns.append(total_reward)
             lengths.append(length)
+            goals += reached_goal
             if self.optimal_steps is not None:
                 all_optimal = all_optimal and reached_goal and length <= self.optimal_steps
-        return float(np.mean(returns)), float(np.mean(lengths)), all_optimal
+        return float(np.mean(returns)), float(np.mean(lengths)), goals / self.n_eval_episodes, all_optimal
 
     def _on_step(self) -> bool:
         for done, info in zip(self.locals["dones"], self.locals["infos"], strict=True):
             if done and "episode" in info:
                 self._train_episode_count += 1
                 if self._train_episode_count % self.eval_every_episodes == 0:
-                    eval_return, eval_length, optimal = self._run_eval()
+                    eval_return, eval_length, goal_rate, optimal = self._run_eval()
                     self.eval_train_episodes.append(self._train_episode_count)
                     self.eval_timesteps.append(int(self.num_timesteps))
                     self.eval_returns.append(eval_return)
                     self.eval_steps.append(eval_length)
+                    self.eval_goal_rates.append(goal_rate)
                     self.eval_optimal.append(optimal)
                     self._record_optimal(optimal)
                     self._window.append(

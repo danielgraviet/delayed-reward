@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from delayed_reward.agents.tabular.observers import LoggingObserver
+from delayed_reward.agents.tabular.observers import GreedyEvalObserver, LoggingObserver
 from delayed_reward.agents.tabular.policies import EpsilonGreedyPolicy, GreedyPolicy
 from delayed_reward.agents.tabular.q_learning import TabularQLearningAgent
 from delayed_reward.agents.tabular.trainer import Trainer
@@ -16,8 +16,10 @@ from delayed_reward.config import TabularTrialConfig, WandbSettings
 from delayed_reward.environments.factory import create_empty_env
 from delayed_reward.environments.registry import DEFAULT_ENV_ID
 from delayed_reward.protocols import QValueStore
-from delayed_reward.results.saver import create_trial_dir, save_metrics
+from delayed_reward.results.saver import create_trial_dir, save_eval_metrics, save_metrics
 from delayed_reward.tracking import start_wandb_run
+
+GREEDY_EVAL_CAP = 10_000
 
 
 def train_one_trial(config: TabularTrialConfig, delay_dir: Path, *, wandb: WandbSettings | None = None) -> Path:
@@ -40,15 +42,28 @@ def train_one_trial(config: TabularTrialConfig, delay_dir: Path, *, wandb: Wandb
             config=settings,
         )
     observer = LoggingObserver(log_every=config.log_every, wandb_run=wandb_run)
-    trainer = Trainer(env, agent, observers=[observer])
+    eval_env = create_empty_env(env_id=config.env_id, seed=config.seed, delay=delay, max_steps=config.max_steps)
+    evals = GreedyEvalObserver(
+        eval_env=eval_env, q_store=agent.q_store, every_episodes=config.eval_every_episodes, max_steps=GREEDY_EVAL_CAP
+    )
+    trainer = Trainer(env, agent, observers=[observer, evals])
 
     try:
         trainer.train(config.episodes)
     finally:
         env.close()
+        eval_env.close()
 
     trial_dir = create_trial_dir(delay_dir, trial)
     save_metrics(trial_dir, rewards=observer.rewards, steps=observer.steps, config=settings, window=config.log_every)
+    save_eval_metrics(
+        trial_dir,
+        train_episodes=evals.train_episodes,
+        train_timesteps=evals.train_timesteps,
+        returns=evals.returns,
+        steps=evals.steps,
+        goal_rates=evals.goal_rates,
+    )
     gif_path = record_greedy_policy_gif(
         agent.q_store,
         seed=config.seed,

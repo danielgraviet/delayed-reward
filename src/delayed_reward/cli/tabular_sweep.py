@@ -8,7 +8,7 @@ from pathlib import Path
 from delayed_reward.cli.tabular import add_tabular_args, tabular_config_from_args, wandb_from_args
 from delayed_reward.results.saver import create_run_dir
 from delayed_reward.sweep.tabular import run_trial_task
-from delayed_reward.sweep.trials import plan_tasks, plot_survival_if_any, run_in_processes
+from delayed_reward.sweep.trials import plan_tasks, run_in_processes, write_run_overview
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     tasks = [(config.delay, config.trial, (config, run_dir, wandb)) for config in pending]
     failures = run_in_processes(run_trial_task, tasks, workers=args.workers)
-    plot_survival_if_any(run_dir, smooth_window=template.log_every, onset_threshold=args.onset_threshold)
+    write_run_overview(run_dir)
     if failures:
         raise SystemExit(f"{len(failures)} trial(s) failed; resume with --run-dir")
     print(f"All delays finished. Results under {run_dir.resolve()}", flush=True)

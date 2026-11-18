@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 HALLWAY = ["--env-kind", "keydoor", "--env-id", "MiniGrid-DoorKey-Hallway-20x6-v0", "--step-penalty", "0.001"]
-TINY_DQN = [*HALLWAY, "--timesteps", "600", "--eval-every-episodes", "2", "--optimal-steps", "40"]
+TINY_DQN = [*HALLWAY, "--timesteps", "600", "--max-steps", "50", "--eval-every-episodes", "2", "--optimal-steps", "40"]
 
 
 def _cli(module: str, *argv: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -51,7 +51,10 @@ def test_dqn_sweep_runs_resumes_and_refuses_changed_settings(tmp_path: Path) -> 
     first = _cli("dqn_sweep", *sweep, "--results-dir", str(tmp_path))
     run_dir = _run_dir(first.stdout)
     _trial_files(run_dir, [0, 3], 2)
-    assert (run_dir / "delay_survival.png").is_file()
+    for chart in ("analysis.json", "time_to_solve.png", "success_rate.png", "trial_timelines.png"):
+        assert (run_dir / chart).is_file(), chart
+    inspected = _cli("inspect_run", str(run_dir))
+    assert "4 trials finished" in inspected.stdout and "median time" in inspected.stdout
     assert (run_dir / "time_to_optimal.json").is_file()
     summary = json.loads((run_dir / "delay_3" / "trial_1" / "summary.json").read_text())
     assert (summary["config"]["delay"], summary["config"]["seed"]) == (3, 1)
@@ -79,11 +82,26 @@ def test_sequential_dqn_cli(tmp_path: Path) -> None:
 
 
 def test_tabular_sweep_and_sequential_cli(tmp_path: Path) -> None:
-    tiny = ["--episodes", "60", "--max-steps", "60", "--log-every", "20", "--delay", "0", "4"]
+    tiny = [
+        "--episodes",
+        "60",
+        "--max-steps",
+        "60",
+        "--log-every",
+        "20",
+        "--eval-every-episodes",
+        "20",
+        "--delay",
+        "0",
+        "4",
+    ]
     sweep = _cli("tabular_sweep", *tiny, "--trials", "2", "--workers", "2", "--results-dir", str(tmp_path / "sweep"))
     run_dir = _run_dir(sweep.stdout)
     _trial_files(run_dir, [0, 4], 2)
     assert "PENDING 0 SKIPPED 4" in _cli("tabular_sweep", *tiny, "--trials", "2", "--run-dir", str(run_dir)).stdout
+    assert (run_dir / "time_to_solve.png").is_file()
+    with (run_dir / "delay_0" / "trial_0" / "eval_metrics.csv").open() as fh:
+        assert [row["train_episode"] for row in csv.DictReader(fh)] == ["20", "40", "60"]
 
     _cli("tabular", *tiny, "--trials", "1", "--results-dir", str(tmp_path / "seq"))
     (seq_run,) = (tmp_path / "seq").iterdir()

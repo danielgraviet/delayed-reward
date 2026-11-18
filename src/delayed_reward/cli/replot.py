@@ -3,7 +3,8 @@ files -- no retraining. Useful after changing the plotting/onset logic.
 
 Two modes:
 - a single run directory (``delay_*/trial_*/metrics.csv`` inside it):
-  regenerates ``delay_survival.{json,png}``, ``learning_curves.png``, and
+  regenerates ``analysis.json``, the learning charts (``time_to_solve``,
+  ``success_rate``, ``trial_timelines``), ``learning_curves.png``, and
   ``episode_length.png`` in place.
 - a pilot directory containing several condition subdirectories (each its
   own run directory, e.g. ``baseline/``, ``delay50_arrival/``,
@@ -16,10 +17,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from delayed_reward.results.learning_charts import plot_run_overview
 from delayed_reward.results.plotting import (
     DEFAULT_ONSET_THRESHOLD,
     plot_condition_comparison,
-    plot_delay_survival,
     plot_episode_length,
     plot_eval_curve,
     plot_learning_curves,
@@ -31,8 +32,8 @@ def _is_run_dir(path: Path) -> bool:
 
 
 def _replot_run_dir(run_dir: Path, *, smooth_window: int, onset_threshold: float) -> None:
-    survival = plot_delay_survival(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold)
-    print(f"  delay_survival  -> {survival.resolve()}")
+    for path in plot_run_overview(run_dir):
+        print(f"  {path.stem:<16}-> {path.resolve()}")
     curves = plot_learning_curves(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold)
     print(f"  learning_curves -> {curves.resolve()}")
     print(f"  episode_length  -> {plot_episode_length(run_dir, smooth_window=smooth_window).resolve()}")

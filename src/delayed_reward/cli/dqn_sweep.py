@@ -7,10 +7,9 @@ from pathlib import Path
 
 from delayed_reward.cli.dqn import add_dqn_args, dqn_config_from_args, wandb_from_args
 from delayed_reward.config import DQNTrialConfig
-from delayed_reward.results.plotting import DEFAULT_ONSET_THRESHOLD
 from delayed_reward.results.saver import create_run_dir
 from delayed_reward.sweep.dqn import run_trial_task, summarize_time_to_optimal
-from delayed_reward.sweep.trials import plan_tasks, plot_survival_if_any, run_in_processes
+from delayed_reward.sweep.trials import plan_tasks, run_in_processes, write_run_overview
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,7 +18,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--delay", type=int, nargs="+", default=[0])
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--workers", type=int, default=6)
-    parser.add_argument("--onset-threshold", type=float, default=DEFAULT_ONSET_THRESHOLD)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument(
         "--run-dir",
@@ -34,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Run only these trial indices (each < --trials); used by remote launchers",
     )
-    parser.add_argument("--no-plot", action="store_true", help="Skip the survival plot")
+    parser.add_argument("--no-plot", action="store_true", help="Skip the learning charts")
     return parser
 
 
@@ -45,8 +43,6 @@ def resolve_sweep(args: argparse.Namespace) -> tuple[DQNTrialConfig, list[int], 
         raise SystemExit("trials and workers must be >= 1")
     if any(delay < 0 for delay in delays):
         raise SystemExit("delay values must be >= 0")
-    if not 0.0 <= args.onset_threshold <= 1.0:
-        raise SystemExit("onset-threshold must be in [0, 1]")
     template = dqn_config_from_args(args)
     trial_ids = list(dict.fromkeys(args.trial_ids)) if args.trial_ids else list(range(args.trials))
     if any(not 0 <= trial < args.trials for trial in trial_ids):
@@ -76,7 +72,7 @@ def main(argv: list[str] | None = None) -> None:
     tasks = [(config.env.delay, config.trial, (config, run_dir, wandb)) for config in pending]
     failures = run_in_processes(run_trial_task, tasks, workers=args.workers)
     if not args.no_plot:
-        plot_survival_if_any(run_dir, smooth_window=100, onset_threshold=args.onset_threshold)
+        write_run_overview(run_dir)
     summarize_time_to_optimal(run_dir)
     if failures:
         raise SystemExit(f"{len(failures)} trial(s) failed; resume with --run-dir")

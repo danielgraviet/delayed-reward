@@ -111,6 +111,7 @@ def train_trial(config: DQNTrialConfig, trial_dir: Path, *, wandb: WandbSettings
             train_timesteps=eval_callback.eval_timesteps,
             returns=eval_callback.eval_returns,
             steps=eval_callback.eval_steps,
+            goal_rates=eval_callback.eval_goal_rates,
             optimal=eval_callback.eval_optimal if config.eval.optimal_steps is not None else None,
         )
     model.save(trial_dir / "model")
