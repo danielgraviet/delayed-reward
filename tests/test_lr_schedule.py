@@ -3,23 +3,22 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
 from delayed_reward.config import DQNParams, LRSchedule
-from delayed_reward.dqn_experiment import dqn_config_from_args, make_lr_schedule
-from delayed_reward.environments.factory import HALLWAY_KEYDOOR_ENV_ID
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-import parallel_dqn_sweep  # noqa: E402
+from delayed_reward.agents.dqn.model import make_lr_schedule
+from delayed_reward.cli import dqn_sweep
+from delayed_reward.cli.dqn import dqn_config_from_args
+from delayed_reward.environments.registry import HALLWAY_KEYDOOR_ENV_ID
+from delayed_reward.sweep.dqn import plan_tasks
 
 BASE = ["--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID]
 
 
 def _args(tmp_path: Path, *extra: str):
-    return parallel_dqn_sweep.build_parser().parse_args(["--trials", "1", "--run-dir", str(tmp_path), *BASE, *extra])
+    return dqn_sweep.build_parser().parse_args(["--trials", "1", "--run-dir", str(tmp_path), *BASE, *extra])
 
 
 def _write_summary(tmp_path: Path, config: dict) -> None:
@@ -29,7 +28,7 @@ def _write_summary(tmp_path: Path, config: dict) -> None:
 
 
 def _plan(args, tmp_path):
-    return parallel_dqn_sweep.plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
+    return plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
 
 
 def test_constant_schedule_is_a_plain_float():
@@ -59,7 +58,7 @@ def test_lr_final_is_only_recorded_for_linear(tmp_path):
 
 def test_sweep_rejects_bad_lr_final(tmp_path):
     with pytest.raises(SystemExit, match="lr_final"):
-        parallel_dqn_sweep.resolve_sweep(_args(tmp_path, "--lr-schedule", "linear", "--lr-final", "1"))
+        dqn_sweep.resolve_sweep(_args(tmp_path, "--lr-schedule", "linear", "--lr-final", "1"))
 
 
 def test_resume_skips_matching_summary(tmp_path):

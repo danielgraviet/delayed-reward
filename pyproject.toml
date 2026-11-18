@@ -1,7 +1,7 @@
 [project]
 name = "delayed-reward"
 version = "0.1.0"
-description = "Tabular Q-learning on fixed MiniGrid environments"
+description = "How much reward delay can tabular Q-learning and DQN still learn through, on MiniGrid"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -30,5 +30,11 @@ dev = [
 ]
 
 [project.scripts]
-delayed-reward = "delayed_reward.__main__:main"
-delayed-reward-dqn = "delayed_reward.dqn_experiment:main"
+delayed-reward = "delayed_reward.cli.tabular:main"
+delayed-reward-sweep = "delayed_reward.cli.tabular_sweep:main"
+delayed-reward-dqn = "delayed_reward.cli.dqn:main"
+delayed-reward-dqn-sweep = "delayed_reward.cli.dqn_sweep:main"
+delayed-reward-daytona = "delayed_reward.cli.daytona:main"
+delayed-reward-daytona-snapshot = "delayed_reward.cli.daytona_snapshot:main"
+delayed-reward-replot = "delayed_reward.cli.replot:main"
+delayed-reward-eval-distractors = "delayed_reward.cli.eval_distractors:main"

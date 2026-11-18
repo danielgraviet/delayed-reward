@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from delayed_reward.dqn_experiment import EpisodeMetricsCallback
+from delayed_reward.agents.dqn.callbacks import EpisodeMetricsCallback
 
 
 class FakeReplayBuffer:

@@ -5,24 +5,22 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
-import sys
 from pathlib import Path
 
 import pytest
 from minigrid.core.world_object import Door, Floor, Key
 
-from delayed_reward.dqn_experiment import dqn_config_from_args
-from delayed_reward.environments.factory import (
+from delayed_reward.cli import dqn_sweep
+from delayed_reward.cli.dqn import dqn_config_from_args
+from delayed_reward.environments.factory import create_keydoor_dqn_env
+from delayed_reward.environments.layout import LayoutRandomization
+from delayed_reward.environments.rectangular import RectangularDoorKeyEnv
+from delayed_reward.environments.registry import (
     HALLWAY_KEYDOOR_ENV_ID,
     KEYDOOR_DISTRACTOR_ENV_ID,
     KEYDOOR_ENV_ID,
-    create_keydoor_dqn_env,
 )
-from delayed_reward.environments.layout import LayoutRandomization
-from delayed_reward.environments.rectangular import RectangularDoorKeyEnv
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-import parallel_dqn_sweep  # noqa: E402
+from delayed_reward.sweep.dqn import plan_tasks
 
 EPISODES = 300
 HALLWAY_FIXED = {"start": ((1, 3), 0), "key": (7, 1), "door": (15, 2)}
@@ -140,13 +138,13 @@ def test_from_names_round_trips_and_rejects_unknown():
 # -- resume checks -----------------------------------------------------------
 
 def _sweep_args(tmp_path: Path, *extra: str) -> argparse.Namespace:
-    return parallel_dqn_sweep.build_parser().parse_args(
+    return dqn_sweep.build_parser().parse_args(
         ["--trials", "1", "--run-dir", str(tmp_path), *extra]
     )
 
 
 def _plan(args, env_id, tmp_path):
-    return parallel_dqn_sweep.plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
+    return plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
 
 
 def test_resume_refuses_changed_randomization(tmp_path):
@@ -165,4 +163,4 @@ def test_resume_refuses_changed_randomization(tmp_path):
 def test_sweep_rejects_randomization_on_unsupported_env(tmp_path):
     args = _sweep_args(tmp_path, "--env-kind", "keydoor", "--randomize", "start")
     with pytest.raises(SystemExit, match="does not support layout randomization"):
-        parallel_dqn_sweep.resolve_sweep(args)
+        dqn_sweep.resolve_sweep(args)

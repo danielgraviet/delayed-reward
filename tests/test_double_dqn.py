@@ -10,9 +10,9 @@ import pytest
 import torch as th
 
 from delayed_reward.config import DQNParams, DQNTrialConfig, EnvKind, EnvSpec, EvalSpec
-from delayed_reward.double_dqn import DoubleDQN, double_dqn_next_q
-from delayed_reward.dqn_experiment import train_trial
-from delayed_reward.environments.factory import HALLWAY_KEYDOOR_ENV_ID
+from delayed_reward.agents.dqn.double_dqn import DoubleDQN, double_dqn_next_q
+from delayed_reward.environments.registry import HALLWAY_KEYDOOR_ENV_ID
+from delayed_reward.experiments.dqn import train_trial
 
 
 def test_online_net_picks_and_target_net_scores():

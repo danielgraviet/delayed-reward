@@ -24,7 +24,7 @@ choose the W&B project and account.
 Example parallel tabular sweep:
 
 ```sh
-uv run python scripts/parallel_sweep.py \
+uv run delayed-reward-sweep \
   --delay 0 2 5 10 --trials 10 --workers 6 --wandb \
   --wandb-project delayed-reward
 ```
@@ -32,7 +32,7 @@ uv run python scripts/parallel_sweep.py \
 Example parallel DQN sweep:
 
 ```sh
-uv run python scripts/parallel_dqn_sweep.py \
+uv run delayed-reward-dqn-sweep \
   --env-kind keydoor --delay 0 2 5 10 --trials 10 --workers 4 --wandb \
   --wandb-project delayed-reward
 ```
@@ -49,8 +49,8 @@ directory:
 
 ```sh
 uv sync --group cloud && export DAYTONA_API_KEY=...
-uv run --group cloud scripts/daytona_snapshot.py          # once per uv.lock change
-uv run --group cloud scripts/daytona_sweep.py \
+uv run --group cloud delayed-reward-daytona-snapshot   # once per uv.lock change
+uv run --group cloud delayed-reward-daytona \
   --env-kind keydoor --delay 0 2 5 10 --trials 10 --wandb --max-sandboxes 40
 ```
 

@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 
-from delayed_reward.environments.factory import (
+from delayed_reward.environments.registry import (
     DEFAULT_ENV_ID,
     HALLWAY_KEYDOOR_ENV_ID,
     KEYDOOR_DISTRACTOR_ENV_ID,

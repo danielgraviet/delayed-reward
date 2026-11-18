@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import csv
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
 from delayed_reward.config import DQNParams, DQNTrialConfig, EnvKind, EnvSpec, EvalSpec, LRSchedule
-from delayed_reward.dqn_experiment import GreedyEvalCallback, make_lr_schedule, train_trial
-from delayed_reward.environments.factory import HALLWAY_KEYDOOR_ENV_ID
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-import parallel_dqn_sweep  # noqa: E402
+from delayed_reward.agents.dqn.callbacks import GreedyEvalCallback
+from delayed_reward.agents.dqn.model import make_lr_schedule
+from delayed_reward.cli import dqn_sweep
+from delayed_reward.environments.registry import HALLWAY_KEYDOOR_ENV_ID
+from delayed_reward.experiments.dqn import train_trial
+from delayed_reward.sweep.dqn import summarize_time_to_optimal
 
 BASE = ["--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID]
 
@@ -118,7 +118,7 @@ def test_schedule_horizon_fixes_epsilon_decay_independent_of_cap(tmp_path, monke
 
 
 def _args(tmp_path: Path, *extra: str):
-    return parallel_dqn_sweep.build_parser().parse_args(
+    return dqn_sweep.build_parser().parse_args(
         ["--trials", "1", "--run-dir", str(tmp_path), *BASE, *extra]
     )
 
@@ -133,7 +133,7 @@ def _args(tmp_path: Path, *extra: str):
 )
 def test_sweep_rejects_bad_criterion_args(tmp_path, extra, message):
     with pytest.raises(SystemExit, match=message):
-        parallel_dqn_sweep.resolve_sweep(_args(tmp_path, *extra))
+        dqn_sweep.resolve_sweep(_args(tmp_path, *extra))
 
 
 def test_run_summary_counts_censored_trials_without_solve_times(tmp_path):
@@ -146,7 +146,7 @@ def test_run_summary_counts_censored_trials_without_solve_times(tmp_path):
         trial_dir = tmp_path / "delay_0" / f"trial_{trial}"
         trial_dir.mkdir(parents=True)
         (trial_dir / "summary.json").write_text(json.dumps({"config": {}, "time_to_optimal": record}))
-    out = parallel_dqn_sweep.summarize_time_to_optimal(tmp_path)
+    out = summarize_time_to_optimal(tmp_path)
     entry = json.loads(out.read_text())["0"]
     assert (entry["n_sustained"], entry["n_censored"], entry["n_first_optimal"]) == (1, 2, 2)
     assert entry["sustained_timesteps_solved"] == [300]

@@ -4,16 +4,17 @@ The DQN workload (128×128 MLP, batch 64) is bound by env stepping on the CPU,
 so trials can run on Daytona CPU sandboxes instead of the GPU box. Each pending
 `(delay, trial)` gets its own sandbox. Finished `trial_N/` folders are
 downloaded into a local `results/run_*` directory, which uses the same layout
-and resume rules as `scripts/parallel_dqn_sweep.py`.
+and resume rules as `delayed-reward-dqn-sweep`.
 
 ## Status (2026-11-09): pick up here
 
 **Done (uncommitted on `main`):**
 - `daytona` SDK 0.231.1 is in the optional `cloud` uv group (`pyproject.toml`, `uv.lock`).
-- `scripts/daytona_snapshot.py` builds the snapshot, and `scripts/daytona_sweep.py` is the launcher.
-- `scripts/parallel_dqn_sweep.py` gained `--trial-ids` and `--no-plot`, and its
-  planning moved into `resolve_sweep()` / `plan_tasks()`, which the Daytona
-  launcher reuses. Local behaviour is unchanged.
+- `delayed-reward-daytona-snapshot` builds the snapshot, and `delayed-reward-daytona` is the launcher
+  (library code in `src/delayed_reward/sweep/daytona*.py`).
+- `delayed-reward-dqn-sweep` has `--trial-ids` and `--no-plot`. Planning lives in
+  `cli/dqn_sweep.resolve_sweep()` and `sweep/dqn.plan_tasks()`, which the Daytona
+  launcher reuses. Each sandbox runs `PYTHONPATH=src python -m delayed_reward.cli.dqn_sweep`.
 - Checked locally only: `--help`, `--dry-run`, argument forwarding, and the code tarball (46 files, ~39 KiB).
 
 **Verified on real sandboxes (2026-11-10):** snapshot `delayed-reward-cpu-2c4g-357557123c`
@@ -33,18 +34,18 @@ wall clock. W&B works from `~/.netrc`, with no extra setup.
 
 **Original checklist:**
 1. `export DAYTONA_API_KEY=...`, then build the snapshot:
-   `uv run --group cloud scripts/daytona_snapshot.py`
+   `uv run --group cloud delayed-reward-daytona-snapshot`
    (first real check of the SDK's image build: the CPU torch index and requirement pins).
 2. Smoke test, 2 short trials end to end:
    ```sh
-   uv run --group cloud scripts/daytona_sweep.py --env-kind keydoor --delay 0 \
+   uv run --group cloud delayed-reward-daytona --env-kind keydoor --delay 0 \
      --trials 2 --timesteps 20000 --max-sandboxes 2
    ```
    Check that `trial_*/summary.json` downloaded, `config.device == "cpu"`, and
    that `daytona.log` is present. Run `--cleanup` afterwards to confirm no
    sandboxes are left.
 3. Benchmark: time the 20k-step smoke trial against the same settings on the GPU
-   box (`ssh gpu`, `parallel_dqn_sweep.py ... --timesteps 20000 --workers 1`).
+   box (`ssh gpu`, `delayed-reward-dqn-sweep ... --timesteps 20000 --workers 1`).
    If a 2-vCPU sandbox is much slower, try `--cpu 1` (more sandboxes per quota)
    or `--cpu 4`. Each size gets its own snapshot, built automatically.
 4. Check the Tier 3 vCPU quota in the Daytona dashboard and size
@@ -59,7 +60,7 @@ wall clock. W&B works from `~/.netrc`, with no extra setup.
   allowed (they are replaced with `-`).
 - W&B inside sandboxes: the key is passed as a plain env var. A Daytona org
   Secret would be safer if the key format check allows it.
-- Only the DQN launcher has a Daytona path. Tabular `parallel_sweep.py` trials are
+- Only the DQN launcher has a Daytona path. Tabular `delayed-reward-sweep` trials are
   short and probably don't need one.
 
 ## One-time setup
@@ -67,7 +68,7 @@ wall clock. W&B works from `~/.netrc`, with no extra setup.
 ```sh
 uv sync --group cloud                    # installs the daytona SDK (optional group)
 export DAYTONA_API_KEY=...               # https://app.daytona.io/dashboard/keys
-uv run --group cloud scripts/daytona_snapshot.py   # build CPU snapshot (~minutes, once)
+uv run --group cloud delayed-reward-daytona-snapshot   # build CPU snapshot (~minutes, once)
 ```
 
 The snapshot holds Python 3.13, CPU-only torch, and the exact versions from
@@ -80,12 +81,12 @@ a rebuild. Use `--rebuild` to force a rebuild.
 ## Run
 
 ```sh
-uv run --group cloud scripts/daytona_sweep.py \
+uv run --group cloud delayed-reward-daytona \
   --env-kind keydoor --delay 0 1 2 5 10 25 50 100 --trials 10 \
   --step-penalty 0.001 --wandb --max-sandboxes 80
 ```
 
-- All `parallel_dqn_sweep.py` flags are forwarded. `--run-dir`, `--delay`,
+- All `delayed-reward-dqn-sweep` flags are forwarded. `--run-dir`, `--delay`,
   `--trial-ids`, and `--workers` are set per sandbox by the launcher.
 - Resume with `--run-dir results/run_X`. Completed trials are skipped, and
   settings mismatches are refused.
@@ -102,7 +103,7 @@ uv run --group cloud scripts/daytona_sweep.py \
   activity for hours, and a hard `--ttl-hours` cap (default 24) so nothing
   bills forever.
 - Ctrl-C cancels trials and deletes every live sandbox. Stray sandboxes left by a
-  crashed launcher can be removed with `scripts/daytona_sweep.py --cleanup`
+  crashed launcher can be removed with `delayed-reward-daytona --cleanup`
   (deletes everything labelled `app=delayed-reward`).
 - Failed trial logs go to `RUN_DIR/_daytona_logs/`. `--keep-failed` leaves
   those sandboxes up for debugging (delete them afterwards).

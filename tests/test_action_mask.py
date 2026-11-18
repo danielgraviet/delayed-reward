@@ -12,8 +12,8 @@ from delayed_reward.environments.action_mask import (
     compute_keydoor_action_mask,
 )
 from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
-from delayed_reward.environments.factory import DQNObservationWrapper
 from delayed_reward.environments.keydoor_actions import KeyDoorActionWrapper
+from delayed_reward.environments.observation import DQNObservationWrapper
 
 # KeyDoorActionWrapper: 0=left, 1=right, 2=forward, 3=pickup, 4=toggle
 LEFT, RIGHT, FORWARD, PICKUP, TOGGLE = 0, 1, 2, 3, 4

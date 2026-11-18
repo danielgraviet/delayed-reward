@@ -5,7 +5,7 @@ no-op action (``pickup`` far from the key, ``forward`` into a wall) because
 nothing in training discourages a network from assigning those states a high
 Q-value. Appending a legal/illegal bit per action to the observation, and
 masking illegal actions out before the Q-network's argmax (see
-``delayed_reward.masked_dqn_policy``), removes that failure mode instead of
+``delayed_reward.agents.dqn.masked_policy``), removes that failure mode instead of
 hoping the network learns to avoid it.
 """
 

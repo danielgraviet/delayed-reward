@@ -14,24 +14,22 @@ sequential: setting `--trials 10` does **not** start parallel workers.
 
 ## Run sweeps
 
-Run multi-trial sweeps with the repository's parallel launcher, not the ordinary
-`python -m delayed_reward` CLI. It keeps all delays and trials in one run
+Run multi-trial sweeps with the parallel launchers (`delayed-reward-sweep` for
+tabular, `delayed-reward-dqn-sweep` for DQN), not the sequential
+`delayed-reward` / `delayed-reward-dqn` CLIs. They keep all delays and trials in one run
 directory, runs independent trials in separate processes, and can resume a run
 by skipping trials that already have `summary.json`.
 
-When the local checkout has changes that are not present on the GPU box, copy
-the launcher explicitly after ensuring the destination directory exists:
-
-```sh
-ssh gpu 'mkdir -p /home/dtgraviet/Projects/delayed-reward/scripts'
-scp scripts/parallel_sweep.py gpu:/home/dtgraviet/Projects/delayed-reward/scripts/parallel_sweep.py
-```
+The launchers are package entry points, so the GPU checkout needs the current
+code and a `uv sync` (which installs the entry points). When the local checkout
+has changes that are not on the GPU box, push them, then on the box check
+`git status`, `git pull`, and run `uv sync`.
 
 Example for ten trials at each of the established delay levels:
 
 ```sh
 cd /home/dtgraviet/Projects/delayed-reward
-.venv/bin/python scripts/parallel_sweep.py \
+.venv/bin/delayed-reward-sweep \
   --env-id MiniGrid-Empty-10x10-v0 \
   --episodes 10000 \
   --trials 10 \
@@ -57,7 +55,7 @@ The launcher prints the run directory and a completion line as each trial
 finishes. Check progress and active workers with:
 
 ```sh
-pgrep -af 'parallel_sweep.py|resume_delayed_reward_sweep.py'
+pgrep -af 'delayed-reward-sweep|delayed-reward-dqn-sweep'
 find results/RUN_DIRECTORY -name summary.json | wc -l
 ```
 
@@ -74,4 +72,4 @@ It was switched from a sequential CLI launch to six parallel workers. The
 coordinator is `/tmp/resume_delayed_reward_sweep.py` on the GPU box and its log
 is `results/ten_trial_sweep.log`. Keep this run intact and let the coordinator
 finish; do not start a duplicate sweep. Future sweeps should use the checked-in
-`scripts/parallel_sweep.py` instead of a temporary launcher.
+`delayed-reward-sweep` instead of a temporary launcher.

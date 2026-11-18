@@ -1,19 +1,12 @@
-"""Persist training metrics and policy rollout visualizations."""
+"""Write run/trial directories and per-trial metrics files."""
 
 from __future__ import annotations
 
 import csv
 import json
-from collections.abc import Hashable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
-
-import numpy as np
-from PIL import Image
-
-from delayed_reward.environments.factory import DEFAULT_ENV_ID, create_empty_env
-from delayed_reward.policies.epsilon_greedy import GreedyPolicy
-from delayed_reward.protocols import QValueStore
 
 
 def create_run_dir(base: Path | str = "results") -> Path:
@@ -102,54 +95,3 @@ def save_eval_metrics(
         writer.writerow(header)
         for row in zip(*columns, strict=True):
             writer.writerow(row)
-
-
-def record_greedy_policy_gif(
-    q_store: QValueStore,
-    *,
-    seed: int,
-    output_path: Path,
-    delay: int = 0,
-    env_id: str = DEFAULT_ENV_ID,
-    max_steps: int = 200,
-    episode_max_steps: int | None = None,
-    frame_duration_ms: int = 200,
-) -> Path:
-    """Roll out the greedy policy once and save frames as an animated GIF."""
-    env = create_empty_env(
-        env_id=env_id,
-        seed=seed,
-        delay=delay,
-        render_mode="rgb_array",
-        max_steps=episode_max_steps,
-    )
-    policy = GreedyPolicy()
-    frames: list[np.ndarray] = []
-
-    try:
-        state: Hashable = env.reset()
-        frames.append(env.render())
-
-        for _ in range(max_steps):
-            action = policy.select(state, q_store.get(state))
-            transition = env.step(action)
-            frames.append(env.render())
-            state = transition.state
-            if transition.terminated or transition.truncated:
-                break
-    finally:
-        env.close()
-
-    if not frames:
-        raise RuntimeError("No frames captured for policy GIF")
-
-    images = [Image.fromarray(frame) for frame in frames]
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    images[0].save(
-        output_path,
-        save_all=True,
-        append_images=images[1:],
-        duration=frame_duration_ms,
-        loop=0,
-    )
-    return output_path
