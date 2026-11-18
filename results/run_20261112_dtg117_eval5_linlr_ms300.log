@@ -1,0 +1,25 @@
+RUN_DIR /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg117_eval5_linlr_ms300
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 SANDBOXES 10x2vCPU PENDING 10 SKIPPED 0
+Snapshot delayed-reward-cpu-2c4g-357557123c already exists (state=snapshotstate.active)
+STARTED delay=0 trial=0 sandbox=094231d4-6df1-4c41-a326-6d666543eb83
+STARTED delay=0 trial=7 sandbox=0c2b6b53-bb36-4a28-a876-c0f072e50fc5
+STARTED delay=0 trial=6 sandbox=443a1193-a76d-4866-8d03-3cbd4d52eadf
+STARTED delay=0 trial=8 sandbox=f4658001-712e-4a37-8b7c-3203b8b80f2b
+STARTED delay=0 trial=3 sandbox=82e0cc28-32f2-47fc-bb79-aaf4ad87eae7
+STARTED delay=0 trial=4 sandbox=5133445f-6f25-4669-8e4d-83762245056c
+STARTED delay=0 trial=2 sandbox=1a7c557d-8902-457a-ad93-ed9cba5767b4
+STARTED delay=0 trial=5 sandbox=edb9231b-59a2-4402-9288-bf10f73ad7d8
+STARTED delay=0 trial=1 sandbox=7ae256aa-b3e5-4bc0-b2fd-747e1c02e365
+STARTED delay=0 trial=9 sandbox=e795f0f2-a647-405b-bf32-26907c512016
+DONE delay=0 trial=6 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_6 (53.1 min)
+DONE delay=0 trial=7 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_7 (53.1 min)
+DONE delay=0 trial=8 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_8 (53.1 min)
+DONE delay=0 trial=0 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_0 (53.1 min)
+DONE delay=0 trial=3 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_3 (53.2 min)
+DONE delay=0 trial=5 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_5 (53.2 min)
+DONE delay=0 trial=1 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_1 (53.1 min)
+DONE delay=0 trial=9 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_9 (53.2 min)
+DONE delay=0 trial=4 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_4 (143.0 min)
+DONE delay=0 trial=2 results/run_20261112_dtg117_eval5_linlr_ms300/delay_0/trial_2 (144.0 min)
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg117_eval5_linlr_ms300/delay_survival.png
+All DQN trials finished under /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261112_dtg117_eval5_linlr_ms300
