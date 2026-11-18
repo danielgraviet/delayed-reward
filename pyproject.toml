@@ -26,6 +26,7 @@ cloud = [
     "daytona>=0.231.1",
 ]
 dev = [
+    "hypothesis>=6.170.15",
     "import-linter>=2.16",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
@@ -103,4 +104,5 @@ layers = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-n auto -p no:cacheprovider"
+addopts = "-n auto -p no:cacheprovider -m 'not daytona'"
+markers = ["daytona: spends real Daytona sandbox time; run with `make smoke-daytona`"]

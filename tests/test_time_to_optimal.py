@@ -10,7 +10,7 @@ import pytest
 from stable_baselines3.common.utils import LinearSchedule
 
 from delayed_reward.agents.dqn.callbacks import GreedyEvalCallback
-from delayed_reward.agents.dqn.model import make_lr_schedule
+from delayed_reward.agents.dqn.model import build_model, make_lr_schedule
 from delayed_reward.cli import dqn_sweep
 from delayed_reward.config import DQNParams, DQNTrialConfig, EnvKind, EnvSpec, EvalSpec, LRSchedule
 from delayed_reward.environments.registry import HALLWAY_KEYDOOR_ENV_ID
@@ -70,67 +70,47 @@ def test_linear_lr_reaches_final_at_end_fraction_then_holds():
     assert schedule(0.0) == pytest.approx(1e-4)
 
 
-def _short_trial(
-    tmp_path: Path, monkeypatch, run_eval, *, total_timesteps: int, schedule_timesteps: int = 0, **eval_kwargs
-) -> Path:
-    monkeypatch.setattr(GreedyEvalCallback, "_run_eval", run_eval)
-    trial_dir = tmp_path / "trial_0"
-    trial_dir.mkdir()
-    config = DQNTrialConfig(
-        env=EnvSpec(kind=EnvKind.KEYDOOR, env_id=HALLWAY_KEYDOOR_ENV_ID, max_steps=50, step_penalty=0.001),
-        total_timesteps=total_timesteps,
-        schedule_timesteps=schedule_timesteps,
-        eval=EvalSpec(every_episodes=1, **eval_kwargs),
-    )
-    train_trial(config, trial_dir)
-    return trial_dir
+EMPTY_5X5 = EnvSpec(kind=EnvKind.EMPTY, env_id="MiniGrid-Empty-5x5-v0", max_steps=30)
 
 
-def test_trial_stops_at_sustained_optimal_and_records_it(tmp_path, monkeypatch):
-    """Each training episode is truncated at 50 steps; the 3rd eval closes the streak."""
-    trial_dir = _short_trial(
-        tmp_path,
-        monkeypatch,
-        lambda _self: (1.0, 25.0, True),
-        total_timesteps=50_000,
-        optimal_steps=25,
-        sustain_evals=3,
-        stop_on_sustained=True,
-    )
-    summary = json.loads((trial_dir / "summary.json").read_text())
-    record = summary["time_to_optimal"]
-    assert record["sustained_optimal_timestep"] == 150
-    assert record["trained_timesteps"] == 150
-    assert record["stopped_early"] is True and record["censored"] is False
-    assert summary["config"]["optimal_steps"] == 25
-    with (trial_dir / "eval_metrics.csv").open() as fh:
-        rows = list(csv.DictReader(fh))
-    assert [row["optimal"] for row in rows] == ["1", "1", "1"]
+def test_real_trial_stops_at_its_sustained_optimal_solve(tmp_path):
+    """A real DQN learns the 5-step Empty-5x5 path and stops once three evals in a row are optimal.
 
-
-def test_schedule_horizon_fixes_epsilon_decay_independent_of_cap(tmp_path, monkeypatch):
-    """Epsilon anneals over 0.4 * schedule_timesteps = 400 steps, not 0.4 * the 2000-step cap.
-
-    SB3 updates epsilon just after the callback, so step 400 itself still reads 0.0524.
+    No stubs: training, greedy evals and early stopping all run for real with a fixed seed.
     """
-    seen: list[tuple[int, float]] = []
-
-    def run_eval(self):
-        seen.append((self.num_timesteps, self.model.exploration_rate))
-        return 0.0, 50.0, False
-
-    trial_dir = _short_trial(
-        tmp_path,
-        monkeypatch,
-        run_eval,
-        total_timesteps=2_000,
-        schedule_timesteps=1_000,
+    config = DQNTrialConfig(
+        env=EMPTY_5X5,
+        total_timesteps=20_000,
+        schedule_timesteps=4_000,
+        eval=EvalSpec(every_episodes=5, optimal_steps=5, sustain_evals=3, stop_on_sustained=True),
     )
-    assert all(eps == pytest.approx(0.05) for step, eps in seen if step > 400)
-    assert seen[0][1] > 0.8
-    config = json.loads((trial_dir / "summary.json").read_text())["config"]
-    assert config["schedule_timesteps"] == 1_000
-    assert config["exploration_fraction"] == 0.4
+    train_trial(config, tmp_path)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    record = summary["time_to_optimal"]
+    assert record["stopped_early"] is True
+    assert record["censored"] is False
+    assert record["trained_timesteps"] == record["sustained_optimal_timestep"] < config.total_timesteps
+    assert record["first_optimal_timestep"] <= record["sustained_optimal_timestep"]
+    with (tmp_path / "eval_metrics.csv").open() as fh:
+        rows = list(csv.DictReader(fh))
+    assert [row["optimal"] for row in rows[-3:]] == ["1", "1", "1"]
+    assert int(rows[-1]["train_timestep"]) == record["sustained_optimal_timestep"]
+    saved = summary["config"]
+    assert {key: saved[key] for key in config.to_dict()} == config.to_dict()
+
+
+def test_schedule_horizon_fixes_epsilon_decay_independent_of_cap():
+    """Epsilon anneals over 0.4 * schedule_timesteps = 400 steps, not 0.4 * the 2000-step cap."""
+    config = DQNTrialConfig(env=EMPTY_5X5, total_timesteps=2_000, schedule_timesteps=1_000)
+    model = build_model(config, build_dqn_env(config.env, seed=0))
+
+    def epsilon_at(step: int) -> float:
+        return float(model.exploration_schedule(1 - step / config.total_timesteps))
+
+    assert epsilon_at(0) == pytest.approx(1.0)
+    assert epsilon_at(200) == pytest.approx(1.0 - 0.95 * 200 / 400)
+    assert epsilon_at(400) == pytest.approx(0.05)
+    assert epsilon_at(2_000) == pytest.approx(0.05)
 
 
 def _args(tmp_path: Path, *extra: str):

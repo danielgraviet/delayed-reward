@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import io
 import subprocess
 import tokenize
@@ -44,3 +45,25 @@ def test_markdown_only_in_allowed_places() -> None:
         name for name in listed if name not in ALLOWED_MARKDOWN and Path(name).parts[0] not in ALLOWED_MARKDOWN_DIRS
     ]
     assert stray == []
+
+
+TEST_FILES = sorted((REPO_ROOT / "tests").rglob("*.py"))
+TEST_DOUBLES = {"monkeypatch", "SimpleNamespace", "MagicMock", "Mock", "patch"}
+
+
+@pytest.mark.parametrize("path", TEST_FILES, ids=lambda path: str(path.relative_to(REPO_ROOT)))
+def test_tests_use_real_objects(path: Path) -> None:
+    """Tests exercise the real code; patching and stand-in objects test the stand-in instead."""
+    tree = ast.parse(path.read_text())
+    used = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    used |= {node.arg for node in ast.walk(tree) if isinstance(node, ast.arg)}
+    used |= {
+        alias.asname or alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    fakes = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name.startswith("Fake")}
+    if path.name == "test_codebase_rules.py":
+        used -= TEST_DOUBLES
+    assert sorted((used & TEST_DOUBLES) | fakes) == []

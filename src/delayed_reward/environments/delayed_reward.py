@@ -39,10 +39,11 @@ class DelayedRewardWrapper[ObsType, ActType](gym.Wrapper[ObsType, ActType, ObsTy
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action)
 
-        if self.delay == 0:
-            return obs, reward, terminated, truncated, info
-
         info = dict(info)
+        if self.delay == 0:
+            if terminated and float(reward) > 0.0:
+                info["goal_reached"] = True
+            return obs, reward, terminated, truncated, info
 
         if self._steps_remaining is None:
             if terminated and float(reward) > 0.0:

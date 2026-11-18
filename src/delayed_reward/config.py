@@ -9,6 +9,7 @@ settings fail before any training starts.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
@@ -50,6 +51,20 @@ def _coerce(instance: object, name: str, enum: type[StrEnum]) -> None:
     object.__setattr__(instance, name, enum(getattr(instance, name)))
 
 
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def _in_range(name: str, value: float, low: float, high: float) -> None:
+    """``low <= value <= high``; NaN fails every comparison, so it is rejected too."""
+    _require(low <= value <= high, f"{name} must be in [{low}, {high}], got {value}")
+
+
+def _at_least(name: str, value: float, low: float) -> None:
+    _require(math.isfinite(value) and value >= low, f"{name} must be a finite number >= {low}, got {value}")
+
+
 @dataclass(frozen=True, kw_only=True)
 class EnvSpec:
     """Which environment a trial trains on and how its reward is shaped.
@@ -74,8 +89,8 @@ class EnvSpec:
             raise ValueError(f"delay must be >= 0, got {self.delay}")
         if self.max_steps is not None and self.max_steps < 1:
             raise ValueError(f"max_steps must be >= 1, got {self.max_steps}")
-        if self.step_penalty < 0:
-            raise ValueError(f"step_penalty must be >= 0, got {self.step_penalty}")
+        _at_least("step_penalty", self.step_penalty, 0)
+        _require(math.isfinite(self.subgoal_reward), f"subgoal_reward must be finite, got {self.subgoal_reward}")
         if self.step_penalty and self.kind is not EnvKind.KEYDOOR:
             raise ValueError("step_penalty requires env kind keydoor")
         if self.randomize.any and self.kind is not EnvKind.KEYDOOR:
@@ -113,10 +128,28 @@ class DQNParams:
 
     def __post_init__(self) -> None:
         _coerce(self, "lr_schedule", LRSchedule)
-        if self.learning_rate <= 0:
-            raise ValueError(f"learning_rate must be > 0, got {self.learning_rate}")
-        if self.lr_schedule is LRSchedule.LINEAR and not 0 <= self.lr_final <= self.learning_rate:
-            raise ValueError(f"lr_final must be in [0, learning_rate], got {self.lr_final}")
+        _require(bool(self.network) and all(width >= 1 for width in self.network), "network widths must be >= 1")
+        _require(
+            math.isfinite(self.learning_rate) and self.learning_rate > 0,
+            f"learning_rate must be a finite number > 0, got {self.learning_rate}",
+        )
+        if self.lr_schedule is LRSchedule.LINEAR:
+            _in_range("lr_final", self.lr_final, 0, self.learning_rate)
+        _require(math.isfinite(self.lr_final), f"lr_final must be finite, got {self.lr_final}")
+        for name in ("buffer_size", "batch_size", "train_freq", "target_update_interval"):
+            _at_least(name, getattr(self, name), 1)
+        _at_least("learning_starts", self.learning_starts, 0)
+        _in_range("gamma", self.gamma, 0, 1)
+        _require(
+            0 < self.exploration_fraction <= 1,
+            f"exploration_fraction must be in (0, 1], got {self.exploration_fraction}",
+        )
+        _in_range("exploration_initial_eps", self.exploration_initial_eps, 0, 1)
+        _in_range("exploration_final_eps", self.exploration_final_eps, 0, self.exploration_initial_eps)
+        _require(
+            math.isfinite(self.max_grad_norm) and self.max_grad_norm > 0,
+            f"max_grad_norm must be a finite number > 0, got {self.max_grad_norm}",
+        )
 
 
 @dataclass(frozen=True, kw_only=True)

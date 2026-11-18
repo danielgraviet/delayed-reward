@@ -36,6 +36,13 @@ house rules no linter covers: no `#` comments except tool pragmas (put intent in
 names and docstrings), and no new markdown outside `README.md`, `AGENTS.md`,
 `TODO.md` and `docs/`. Fix the code, not the rule.
 
+Verification is live, not mocked: tests run real envs, real SB3 models and the
+real CLIs as subprocesses (`tests/test_cli_live.py`); patching and fake objects
+are banned by the rules test. Configs and env wrappers are fuzzed with
+Hypothesis (deterministic in `make check`; `make fuzz` runs a long random
+search). When a fuzz run finds a bug, add the failing input as an `@example`.
+`make smoke-daytona` runs one real sandbox trial end to end (needs `.env`).
+
 Work is tracked in Linear: project **Delayed Reward** (team DTGOS,
 https://linear.app/dtgos/project/delayed-reward-c5d43b75b48e). Before starting
 experiment work, read the project description (standing decisions) and its open
