@@ -26,7 +26,11 @@ cloud = [
     "daytona>=0.231.1",
 ]
 dev = [
+    "import-linter>=2.16",
+    "pyright>=1.1.414",
     "pytest>=9.1.1",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.17.5",
 ]
 
 [project.scripts]
@@ -38,3 +42,65 @@ delayed-reward-daytona = "delayed_reward.cli.daytona:main"
 delayed-reward-daytona-snapshot = "delayed_reward.cli.daytona_snapshot:main"
 delayed-reward-replot = "delayed_reward.cli.replot:main"
 delayed-reward-eval-distractors = "delayed_reward.cli.eval_distractors:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "UP", "SIM", "RUF", "TID", "ERA",
+    "N", "C4", "PIE", "ARG", "PTH", "PL",
+]
+ignore = ["PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/delayed_reward/sweep/daytona*.py" = ["PLC0415"]
+"src/delayed_reward/cli/daytona*.py" = ["PLC0415"]
+"src/delayed_reward/tracking.py" = ["PLC0415"]
+
+[tool.ruff.lint.pylint]
+max-args = 9
+max-positional-args = 6
+max-statements = 65
+max-branches = 15
+
+[tool.ruff.lint.isort]
+known-first-party = ["delayed_reward"]
+combine-as-imports = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"sys.path".msg = "Import the installed package instead of editing sys.path."
+"unittest.mock".msg = "Test against real objects; mocks test the mock."
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "standard"
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+
+[tool.importlinter]
+root_package = "delayed_reward"
+
+[[tool.importlinter.contracts]]
+name = "Layers: each layer imports only from the layers below it"
+type = "layers"
+layers = [
+    "delayed_reward.cli",
+    "delayed_reward.sweep",
+    "delayed_reward.experiments",
+    "delayed_reward.agents",
+    "delayed_reward.config",
+    "delayed_reward.environments",
+    "delayed_reward.results",
+    "delayed_reward.tracking | delayed_reward.protocols",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-n auto -p no:cacheprovider"

@@ -7,20 +7,22 @@ import json
 from pathlib import Path
 
 import pytest
+from stable_baselines3.common.utils import LinearSchedule
 
-from delayed_reward.config import DQNParams, DQNTrialConfig, EnvKind, EnvSpec, EvalSpec, LRSchedule
 from delayed_reward.agents.dqn.callbacks import GreedyEvalCallback
 from delayed_reward.agents.dqn.model import make_lr_schedule
 from delayed_reward.cli import dqn_sweep
+from delayed_reward.config import DQNParams, DQNTrialConfig, EnvKind, EnvSpec, EvalSpec, LRSchedule
 from delayed_reward.environments.registry import HALLWAY_KEYDOOR_ENV_ID
-from delayed_reward.experiments.dqn import train_trial
+from delayed_reward.experiments.dqn import build_dqn_env, train_trial
 from delayed_reward.sweep.dqn import summarize_time_to_optimal
 
 BASE = ["--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID]
 
 
 def _callback(**kwargs) -> GreedyEvalCallback:
-    return GreedyEvalCallback(eval_env=None, spec=EvalSpec(every_episodes=1, **kwargs), max_steps=50)
+    eval_env = build_dqn_env(EnvSpec(kind=EnvKind.KEYDOOR, env_id=HALLWAY_KEYDOOR_ENV_ID), seed=0)
+    return GreedyEvalCallback(eval_env=eval_env, spec=EvalSpec(every_episodes=1, **kwargs), max_steps=50)
 
 
 def _feed(callback: GreedyEvalCallback, flags: list[bool]) -> None:
@@ -36,6 +38,7 @@ def test_streak_resets_and_first_and_sustained_are_separate():
     assert callback.first_optimal == {"train_episode": 2, "timestep": 200}
     assert callback.sustained_optimal == {"train_episode": 7, "timestep": 700}
     summary = callback.time_to_optimal(total_timesteps=5_000)
+    assert summary is not None
     assert summary["censored"] is False
     assert summary["censor_timestep"] is None
 
@@ -44,6 +47,7 @@ def test_never_sustained_is_right_censored_at_the_cap():
     callback = _callback(optimal_steps=25, sustain_evals=3)
     _feed(callback, [True, True, False, True])
     summary = callback.time_to_optimal(total_timesteps=5_000)
+    assert summary is not None
     assert summary["first_optimal_timestep"] == 100
     assert summary["sustained_optimal_timestep"] is None
     assert summary["censored"] is True
@@ -59,6 +63,7 @@ def test_no_criterion_means_no_summary():
 def test_linear_lr_reaches_final_at_end_fraction_then_holds():
     params = DQNParams(learning_rate=1e-3, lr_schedule=LRSchedule.LINEAR, lr_final=1e-4)
     schedule = make_lr_schedule(params, end_fraction=0.25)
+    assert isinstance(schedule, LinearSchedule)
     assert schedule(1.0) == pytest.approx(1e-3)
     assert schedule(0.875) == pytest.approx((1e-3 + 1e-4) / 2)
     assert schedule(0.75) == pytest.approx(1e-4)
@@ -82,13 +87,18 @@ def _short_trial(
 
 
 def test_trial_stops_at_sustained_optimal_and_records_it(tmp_path, monkeypatch):
+    """Each training episode is truncated at 50 steps; the 3rd eval closes the streak."""
     trial_dir = _short_trial(
-        tmp_path, monkeypatch, lambda self: (1.0, 25.0, True),
-        total_timesteps=50_000, optimal_steps=25, sustain_evals=3, stop_on_sustained=True,
+        tmp_path,
+        monkeypatch,
+        lambda _self: (1.0, 25.0, True),
+        total_timesteps=50_000,
+        optimal_steps=25,
+        sustain_evals=3,
+        stop_on_sustained=True,
     )
     summary = json.loads((trial_dir / "summary.json").read_text())
     record = summary["time_to_optimal"]
-    # Each training episode is truncated at 50 steps; the 3rd eval closes the streak.
     assert record["sustained_optimal_timestep"] == 150
     assert record["trained_timesteps"] == 150
     assert record["stopped_early"] is True and record["censored"] is False
@@ -99,6 +109,10 @@ def test_trial_stops_at_sustained_optimal_and_records_it(tmp_path, monkeypatch):
 
 
 def test_schedule_horizon_fixes_epsilon_decay_independent_of_cap(tmp_path, monkeypatch):
+    """Epsilon anneals over 0.4 * schedule_timesteps = 400 steps, not 0.4 * the 2000-step cap.
+
+    SB3 updates epsilon just after the callback, so step 400 itself still reads 0.0524.
+    """
     seen: list[tuple[int, float]] = []
 
     def run_eval(self):
@@ -106,10 +120,12 @@ def test_schedule_horizon_fixes_epsilon_decay_independent_of_cap(tmp_path, monke
         return 0.0, 50.0, False
 
     trial_dir = _short_trial(
-        tmp_path, monkeypatch, run_eval, total_timesteps=2_000, schedule_timesteps=1_000,
+        tmp_path,
+        monkeypatch,
+        run_eval,
+        total_timesteps=2_000,
+        schedule_timesteps=1_000,
     )
-    # Epsilon anneals over 0.4 * schedule_timesteps = 400 steps, not 0.4 * 2000
-    # (SB3 updates it just after the callback, so step 400 itself still reads 0.0524).
     assert all(eps == pytest.approx(0.05) for step, eps in seen if step > 400)
     assert seen[0][1] > 0.8
     config = json.loads((trial_dir / "summary.json").read_text())["config"]
@@ -118,9 +134,7 @@ def test_schedule_horizon_fixes_epsilon_decay_independent_of_cap(tmp_path, monke
 
 
 def _args(tmp_path: Path, *extra: str):
-    return dqn_sweep.build_parser().parse_args(
-        ["--trials", "1", "--run-dir", str(tmp_path), *BASE, *extra]
-    )
+    return dqn_sweep.build_parser().parse_args(["--trials", "1", "--run-dir", str(tmp_path), *BASE, *extra])
 
 
 @pytest.mark.parametrize(
@@ -137,6 +151,7 @@ def test_sweep_rejects_bad_criterion_args(tmp_path, extra, message):
 
 
 def test_run_summary_counts_censored_trials_without_solve_times(tmp_path):
+    """1 of 3 solved: the median trial is censored, so no median is claimed."""
     records = [
         {"first_optimal_timestep": 100, "sustained_optimal_timestep": 300, "censored": False, "censor_timestep": None},
         {"first_optimal_timestep": 200, "sustained_optimal_timestep": None, "censored": True, "censor_timestep": 900},
@@ -147,8 +162,8 @@ def test_run_summary_counts_censored_trials_without_solve_times(tmp_path):
         trial_dir.mkdir(parents=True)
         (trial_dir / "summary.json").write_text(json.dumps({"config": {}, "time_to_optimal": record}))
     out = summarize_time_to_optimal(tmp_path)
+    assert out is not None
     entry = json.loads(out.read_text())["0"]
     assert (entry["n_sustained"], entry["n_censored"], entry["n_first_optimal"]) == (1, 2, 2)
     assert entry["sustained_timesteps_solved"] == [300]
-    # 1 of 3 solved: the median trial is censored, so no median is claimed.
     assert entry["median_sustained_timestep"] is None

@@ -6,10 +6,11 @@ from collections import deque
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-from gymnasium.core import ActType, ObsType
+
+from delayed_reward.environments.unwrap import minigrid_env
 
 
-class SubgoalDelayedRewardWrapper(gym.Wrapper):
+class SubgoalDelayedRewardWrapper[ObsType, ActType](gym.Wrapper[ObsType, ActType, ObsType, ActType]):
     """Hold the key-pickup reward for ``delay`` steps; goal reward is untouched.
 
     Semantics
@@ -27,7 +28,7 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
       earned in an episode is realized within that same episode.
     """
 
-    def __init__(self, env: gym.Env, *, delay: int = 0, subgoal_reward: float = 1.0) -> None:
+    def __init__(self, env: gym.Env[ObsType, ActType], *, delay: int = 0, subgoal_reward: float = 1.0) -> None:
         if delay < 0:
             raise ValueError(f"delay must be >= 0, got {delay}")
         super().__init__(env)
@@ -44,16 +45,14 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
         self._pending.clear()
         return self.env.reset(seed=seed, options=options)
 
-    def step(
-        self, action: ActType
-    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+    def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action)
         self._global_step += 1
         reward = float(reward)
         info = dict(info)
         info["environment_step"] = self._global_step
 
-        just_picked_up = not self._picked_up and self.env.unwrapped.carrying is not None
+        just_picked_up = not self._picked_up and minigrid_env(self.env).carrying is not None
         if just_picked_up:
             self._picked_up = True
             info["subgoal_reached"] = True
@@ -63,9 +62,7 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
                 info["subgoal_reward_origin_step"] = self._global_step
                 info["subgoal_reward_amount"] = self.subgoal_reward
             else:
-                self._pending.append(
-                    (self._global_step + self.delay, self._global_step, self.subgoal_reward)
-                )
+                self._pending.append((self._global_step + self.delay, self._global_step, self.subgoal_reward))
 
         while self._pending and self._pending[0][0] <= self._global_step:
             _release_step, origin_step, amount = self._pending.popleft()
@@ -80,8 +77,6 @@ class SubgoalDelayedRewardWrapper(gym.Wrapper):
                 reward += amount
                 info["subgoal_reward_delivered"] = True
                 info["subgoal_reward_origin_step"] = origin_step
-                info["subgoal_reward_amount"] = (
-                    float(info.get("subgoal_reward_amount", 0.0)) + amount
-                )
+                info["subgoal_reward_amount"] = float(info.get("subgoal_reward_amount", 0.0)) + amount
 
         return obs, reward, terminated, truncated, info

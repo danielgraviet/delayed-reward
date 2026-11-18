@@ -39,11 +39,7 @@ class LoggingObserver:
         )
 
         if (episode + 1) % self._log_every == 0:
-            print(
-                f"episode={episode + 1:5d}  "
-                f"mean_return={window_reward:7.3f}  "
-                f"mean_steps={window_steps:6.1f}"
-            )
+            print(f"episode={episode + 1:5d}  mean_return={window_reward:7.3f}  mean_steps={window_steps:6.1f}")
 
     @property
     def rewards(self) -> list[float]:

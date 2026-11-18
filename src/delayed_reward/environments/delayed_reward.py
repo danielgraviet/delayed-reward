@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-from gymnasium.core import ActType, ObsType
 
 
-class DelayedRewardWrapper(gym.Wrapper):
+class DelayedRewardWrapper[ObsType, ActType](gym.Wrapper[ObsType, ActType, ObsType, ActType]):
     """Hold the goal reward for ``delay`` steps after the agent reaches the goal.
 
     Semantics
@@ -22,7 +21,7 @@ class DelayedRewardWrapper(gym.Wrapper):
     - Re-entering the goal during the delay does not reset the timer or reward.
     """
 
-    def __init__(self, env: gym.Env, delay: int = 0) -> None:
+    def __init__(self, env: gym.Env[ObsType, ActType], delay: int = 0) -> None:
         if delay < 0:
             raise ValueError(f"delay must be >= 0, got {delay}")
         super().__init__(env)
@@ -37,9 +36,7 @@ class DelayedRewardWrapper(gym.Wrapper):
         self._steps_remaining = None
         return self.env.reset(seed=seed, options=options)
 
-    def step(
-        self, action: ActType
-    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+    def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action)
 
         if self.delay == 0:
@@ -48,7 +45,6 @@ class DelayedRewardWrapper(gym.Wrapper):
         info = dict(info)
 
         if self._steps_remaining is None:
-            # Not yet waiting: look for first successful goal contact.
             if terminated and float(reward) > 0.0:
                 self._pending_reward = float(reward)
                 self._steps_remaining = self.delay
@@ -58,7 +54,6 @@ class DelayedRewardWrapper(gym.Wrapper):
                 return obs, 0.0, False, truncated, info
             return obs, reward, terminated, truncated, info
 
-        # Delay countdown in progress: ignore further goal signals.
         self._steps_remaining -= 1
         info["delay_steps_remaining"] = self._steps_remaining
         if self._steps_remaining <= 0 or truncated:

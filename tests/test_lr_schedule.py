@@ -6,13 +6,14 @@ import json
 from pathlib import Path
 
 import pytest
+from stable_baselines3.common.utils import LinearSchedule
 
-from delayed_reward.config import DQNParams, LRSchedule
 from delayed_reward.agents.dqn.model import make_lr_schedule
 from delayed_reward.cli import dqn_sweep
 from delayed_reward.cli.dqn import dqn_config_from_args
+from delayed_reward.config import DQNParams, LRSchedule
 from delayed_reward.environments.registry import HALLWAY_KEYDOOR_ENV_ID
-from delayed_reward.sweep.dqn import plan_tasks
+from delayed_reward.sweep.trials import plan_tasks
 
 BASE = ["--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID]
 
@@ -36,8 +37,9 @@ def test_constant_schedule_is_a_plain_float():
 
 
 def test_linear_schedule_decays_from_initial_to_final():
+    """SB3 passes progress_remaining: 1.0 at the start, 0.0 at the end."""
     schedule = make_lr_schedule(DQNParams(learning_rate=1e-3, lr_schedule=LRSchedule.LINEAR, lr_final=1e-5))
-    # SB3 passes progress_remaining: 1.0 at the start, 0.0 at the end.
+    assert isinstance(schedule, LinearSchedule)
     assert schedule(1.0) == pytest.approx(1e-3)
     assert schedule(0.5) == pytest.approx((1e-3 + 1e-5) / 2)
     assert schedule(0.0) == pytest.approx(1e-5)

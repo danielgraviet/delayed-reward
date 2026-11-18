@@ -41,9 +41,7 @@ def build_dqn_env(spec: EnvSpec, *, seed: int, render_mode: str | None = None) -
     )
 
 
-def train_trial(
-    config: DQNTrialConfig, trial_dir: Path, *, wandb: WandbSettings | None = None
-) -> None:
+def train_trial(config: DQNTrialConfig, trial_dir: Path, *, wandb: WandbSettings | None = None) -> None:
     """Train one DQN trial and write its artifacts into ``trial_dir``.
 
     With ``config.eval.stop_on_sustained`` the trial ends at its sustained
@@ -54,8 +52,12 @@ def train_trial(
     wandb_run = None
     if wandb is not None:
         wandb_run = start_wandb_run(
-            enabled=True, project=wandb.project, entity=wandb.entity, group=wandb.group,
-            name=f"delay-{config.env.delay}-trial-{config.trial}", config=settings,
+            enabled=True,
+            project=wandb.project,
+            entity=wandb.entity,
+            group=wandb.group,
+            name=f"delay-{config.env.delay}-trial-{config.trial}",
+            config=settings,
         )
     callback = EpisodeMetricsCallback(
         reward_attribution=config.reward_attribution,
@@ -81,21 +83,19 @@ def train_trial(
 
     best = eval_callback.best_in_window() if eval_callback is not None else None
     if best is not None:
-        model.policy.load_state_dict(best["state_dict"])
+        model.policy.load_state_dict(best.state_dict)
         checkpoint_selection: dict[str, object] = {
             "strategy": "best_of_last_n_eval_checkpoints",
             "window": config.eval.checkpoint_window,
-            "selected_train_episode": best["train_episode"],
-            "selected_timestep": best["timestep"],
-            "selected_eval_return": best["return"],
-            "selected_eval_steps": best["steps"],
+            "selected_train_episode": best.train_episode,
+            "selected_timestep": best.timestep,
+            "selected_eval_return": best.eval_return,
+            "selected_eval_steps": best.eval_steps,
         }
     else:
         checkpoint_selection = {"strategy": "final_weights"}
 
-    time_to_optimal = (
-        eval_callback.time_to_optimal(config.total_timesteps) if eval_callback is not None else None
-    )
+    time_to_optimal = eval_callback.time_to_optimal(config.total_timesteps) if eval_callback is not None else None
     save_metrics(
         trial_dir,
         rewards=callback.rewards,
@@ -130,9 +130,7 @@ def train_trial(
     )
     if wandb_run is not None:
         if time_to_optimal is not None:
-            wandb_run.summary.update(
-                {f"time_to_optimal/{k}": v for k, v in time_to_optimal.items()}
-            )
+            wandb_run.summary.update({f"time_to_optimal/{k}": v for k, v in time_to_optimal.items()})
         wandb_run.finish()
 
 

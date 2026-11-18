@@ -31,8 +31,10 @@ def _is_run_dir(path: Path) -> bool:
 
 
 def _replot_run_dir(run_dir: Path, *, smooth_window: int, onset_threshold: float) -> None:
-    print(f"  delay_survival  -> {plot_delay_survival(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold).resolve()}")
-    print(f"  learning_curves -> {plot_learning_curves(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold).resolve()}")
+    survival = plot_delay_survival(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold)
+    print(f"  delay_survival  -> {survival.resolve()}")
+    curves = plot_learning_curves(run_dir, smooth_window=smooth_window, onset_threshold=onset_threshold)
+    print(f"  learning_curves -> {curves.resolve()}")
     print(f"  episode_length  -> {plot_episode_length(run_dir, smooth_window=smooth_window).resolve()}")
     eval_curve_path = plot_eval_curve(run_dir, onset_threshold=onset_threshold)
     if eval_curve_path is not None:
@@ -57,11 +59,7 @@ def main() -> None:
         _replot_run_dir(root, smooth_window=args.smooth_window, onset_threshold=args.onset_threshold)
         return
 
-    conditions = {
-        p.name: p
-        for p in sorted(root.iterdir())
-        if _is_run_dir(p)
-    }
+    conditions = {p.name: p for p in sorted(root.iterdir()) if _is_run_dir(p)}
     if not conditions:
         raise SystemExit(
             f"{root} is neither a run directory (no delay_* subdirs) "

@@ -16,7 +16,6 @@ from __future__ import annotations
 import numpy as np
 import torch as th
 from stable_baselines3 import DQN
-from torch.nn import functional as F
 
 
 def double_dqn_next_q(q_online_next: th.Tensor, q_target_next: th.Tensor) -> th.Tensor:
@@ -29,7 +28,7 @@ class DoubleDQN(DQN):
     """SB3 ``DQN`` whose TD target uses Double DQN action selection."""
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
-        # Mirrors stable_baselines3 DQN.train (2.9.x); only the target differs.
+        """Mirror of ``stable_baselines3`` ``DQN.train`` (2.9.x); only the TD target differs."""
         self.policy.set_training_mode(True)
         self._update_learning_rate(self.policy.optimizer)
 
@@ -48,7 +47,7 @@ class DoubleDQN(DQN):
             current_q_values = self.q_net(replay_data.observations)
             current_q_values = th.gather(current_q_values, dim=1, index=replay_data.actions.long())
 
-            loss = F.smooth_l1_loss(current_q_values, target_q_values)
+            loss = th.nn.functional.smooth_l1_loss(current_q_values, target_q_values)
             losses.append(loss.item())
 
             self.policy.optimizer.zero_grad()

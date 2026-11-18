@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
+from delayed_reward.config import TrialConfig, config_mismatches
 from delayed_reward.results.plotting import plot_delay_survival
+from delayed_reward.results.saver import create_delay_dir
 
 
 def stash_incomplete(run_dir: Path, delay: int, trial: int) -> None:
@@ -17,8 +20,35 @@ def stash_incomplete(run_dir: Path, delay: int, trial: int) -> None:
         return
     backup_root = run_dir / "_incomplete"
     backup_root.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
     trial_dir.rename(backup_root / f"delay_{delay}_trial_{trial}_{stamp}")
+
+
+def plan_tasks[C: TrialConfig](
+    template: C, run_dir: Path, delays: Sequence[int], trial_ids: Sequence[int]
+) -> tuple[list[C], int]:
+    """Return the pending trial configs and the count of completed ones skipped.
+
+    Completed trials must match the requested settings exactly. Leftover
+    directories of incomplete trials are moved under ``run_dir/_incomplete``.
+    """
+    pending: list[C] = []
+    skipped = 0
+    for delay in delays:
+        delay_dir = create_delay_dir(run_dir, delay)
+        for trial in trial_ids:
+            config = template.for_trial(delay=delay, trial=trial)
+            summary_path = delay_dir / f"trial_{trial}" / "summary.json"
+            if summary_path.exists():
+                saved = json.loads(summary_path.read_text()).get("config", {})
+                mismatches = config_mismatches(saved, config)
+                if mismatches:
+                    raise SystemExit(f"refusing to mix settings in {summary_path}: {mismatches}")
+                skipped += 1
+                continue
+            stash_incomplete(run_dir, delay, trial)
+            pending.append(config)
+    return pending, skipped
 
 
 def run_in_processes[T](

@@ -15,12 +15,15 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from minigrid.core.world_object import Door, Key, WorldObj
+from minigrid.minigrid_env import MiniGridEnv
 
-# Mirrors KeyDoorActionWrapper._ACTIONS: left, right, forward, pickup, toggle.
-N_ACTIONS = 5
+from delayed_reward.environments.keydoor_actions import KeyDoorActionWrapper
+from delayed_reward.environments.unwrap import minigrid_env
+
+N_ACTIONS = len(KeyDoorActionWrapper.ACTIONS)
 
 
-def compute_keydoor_action_mask(unwrapped) -> np.ndarray:
+def compute_keydoor_action_mask(unwrapped: MiniGridEnv) -> np.ndarray:
     """Return a ``(5,)`` float32 mask of which actions have an effect right now.
 
     ``left``/``right`` (turning) are always legal. ``forward`` is legal only
@@ -32,11 +35,7 @@ def compute_keydoor_action_mask(unwrapped) -> np.ndarray:
     front_cell: WorldObj | None = unwrapped.grid.get(*unwrapped.front_pos)
 
     can_forward = front_cell is None or front_cell.can_overlap()
-    can_pickup = (
-        front_cell is not None
-        and front_cell.can_pickup()
-        and unwrapped.carrying is None
-    )
+    can_pickup = front_cell is not None and front_cell.can_pickup() and unwrapped.carrying is None
     can_toggle = isinstance(front_cell, Door) and (
         not front_cell.is_locked
         or (isinstance(unwrapped.carrying, Key) and unwrapped.carrying.color == front_cell.color)
@@ -59,5 +58,5 @@ class ActionMaskObservationWrapper(gym.ObservationWrapper):
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
 
     def observation(self, observation: np.ndarray) -> np.ndarray:
-        mask = compute_keydoor_action_mask(self.env.unwrapped)
+        mask = compute_keydoor_action_mask(minigrid_env(self.env))
         return np.concatenate([observation, mask]).astype(np.float32)

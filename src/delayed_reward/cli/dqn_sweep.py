@@ -9,8 +9,8 @@ from delayed_reward.cli.dqn import add_dqn_args, dqn_config_from_args, wandb_fro
 from delayed_reward.config import DQNTrialConfig
 from delayed_reward.results.plotting import DEFAULT_ONSET_THRESHOLD
 from delayed_reward.results.saver import create_run_dir
-from delayed_reward.sweep.dqn import plan_tasks, run_trial_task, summarize_time_to_optimal
-from delayed_reward.sweep.trials import plot_survival_if_any, run_in_processes
+from delayed_reward.sweep.dqn import run_trial_task, summarize_time_to_optimal
+from delayed_reward.sweep.trials import plan_tasks, plot_survival_if_any, run_in_processes
 
 
 def build_parser() -> argparse.ArgumentParser:

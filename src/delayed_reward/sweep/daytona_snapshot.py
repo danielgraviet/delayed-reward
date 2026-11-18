@@ -20,18 +20,26 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PYTHON_VERSION = "3.13"
 TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
-# GPU-only wheels; the CPU torch build does not need them.
-_EXCLUDED_PREFIXES = ("nvidia-", "cuda-", "triton", "torch==")
+_GPU_ONLY_OR_TORCH_PREFIXES = ("nvidia-", "cuda-", "triton", "torch==")
 
 
 def locked_requirements() -> tuple[str, list[str]]:
     """Return (torch version, other pinned requirement lines) from uv.lock."""
     exported = subprocess.run(
         [
-            "uv", "export", "--frozen", "--no-dev", "--no-hashes",
-            "--no-emit-project", "--format", "requirements-txt",
+            "uv",
+            "export",
+            "--frozen",
+            "--no-dev",
+            "--no-hashes",
+            "--no-emit-project",
+            "--format",
+            "requirements-txt",
         ],
-        cwd=REPO_ROOT, check=True, capture_output=True, text=True,
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
     torch_version = None
     lines = []
@@ -41,7 +49,7 @@ def locked_requirements() -> tuple[str, list[str]]:
             continue
         if line.startswith("torch=="):
             torch_version = line.split("==", 1)[1].split(";", 1)[0].strip()
-        if line.startswith(_EXCLUDED_PREFIXES):
+        if line.startswith(_GPU_ONLY_OR_TORCH_PREFIXES):
             continue
         lines.append(line)
     if torch_version is None:

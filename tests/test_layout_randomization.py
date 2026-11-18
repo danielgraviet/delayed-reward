@@ -6,6 +6,7 @@ import argparse
 import itertools
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from minigrid.core.world_object import Door, Floor, Key
@@ -13,19 +14,19 @@ from minigrid.core.world_object import Door, Floor, Key
 from delayed_reward.cli import dqn_sweep
 from delayed_reward.cli.dqn import dqn_config_from_args
 from delayed_reward.environments.factory import create_keydoor_dqn_env
-from delayed_reward.environments.layout import LayoutRandomization
+from delayed_reward.environments.layout import NO_RANDOMIZATION, LayoutRandomization
 from delayed_reward.environments.rectangular import RectangularDoorKeyEnv
 from delayed_reward.environments.registry import (
     HALLWAY_KEYDOOR_ENV_ID,
     KEYDOOR_DISTRACTOR_ENV_ID,
     KEYDOOR_ENV_ID,
 )
-from delayed_reward.sweep.dqn import plan_tasks
+from delayed_reward.sweep.trials import plan_tasks
 
 EPISODES = 300
 HALLWAY_FIXED = {"start": ((1, 3), 0), "key": (7, 1), "door": (15, 2)}
 ALL_TOGGLES = [
-    LayoutRandomization(**dict(zip(LayoutRandomization.element_names(), flags)))
+    LayoutRandomization(**dict(zip(LayoutRandomization.element_names(), flags, strict=True)))
     for flags in itertools.product([False, True], repeat=3)
 ]
 
@@ -36,7 +37,8 @@ def _toggle_id(randomize: LayoutRandomization) -> str:
 
 def _layout(env) -> dict[str, object]:
     u = env.unwrapped
-    found: dict[str, object] = {"distractors": []}
+    distractors: list[tuple[int, int]] = []
+    found: dict[str, Any] = {"distractors": distractors}
     for index, obj in enumerate(u.grid.grid):
         pos = (index % u.width, index // u.width)
         if isinstance(obj, Key):
@@ -44,12 +46,12 @@ def _layout(env) -> dict[str, object]:
         elif isinstance(obj, Door):
             found["door"] = pos
         elif isinstance(obj, Floor):
-            found["distractors"].append(pos)
+            distractors.append(pos)
     found["start"] = (tuple(int(v) for v in u.agent_pos), int(u.agent_dir))
     return found
 
 
-def _episodes(randomize=LayoutRandomization(), *, seed=0, env_id=HALLWAY_KEYDOOR_ENV_ID, episodes=EPISODES, **kw):
+def _episodes(randomize=NO_RANDOMIZATION, *, seed=0, env_id=HALLWAY_KEYDOOR_ENV_ID, episodes=EPISODES, **kw):
     env = create_keydoor_dqn_env(env_id=env_id, seed=seed, randomize=randomize, **kw)
     layouts = []
     for _ in range(episodes):
@@ -111,11 +113,11 @@ def test_same_seed_gives_same_episode_sequence():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"key_pos": (16, 1)},  # behind the door
-        {"agent_start_pos": (16, 1)},
-        {"key_pos": (1, 3)},  # on the agent's start
-        {"door_pos": (18, 2)},  # wall on the goal column
-        {"door_pos": (15, 5)},  # door in the outer wall
+        pytest.param({"key_pos": (16, 1)}, id="key-behind-door"),
+        pytest.param({"agent_start_pos": (16, 1)}, id="start-behind-door"),
+        pytest.param({"key_pos": (1, 3)}, id="key-on-agent-start"),
+        pytest.param({"door_pos": (18, 2)}, id="wall-on-goal-column"),
+        pytest.param({"door_pos": (15, 5)}, id="door-in-outer-wall"),
     ],
 )
 def test_illegal_fixed_layouts_are_rejected(kwargs):
@@ -135,15 +137,11 @@ def test_from_names_round_trips_and_rejects_unknown():
         LayoutRandomization.from_names(["goal"])
 
 
-# -- resume checks -----------------------------------------------------------
-
 def _sweep_args(tmp_path: Path, *extra: str) -> argparse.Namespace:
-    return dqn_sweep.build_parser().parse_args(
-        ["--trials", "1", "--run-dir", str(tmp_path), *extra]
-    )
+    return dqn_sweep.build_parser().parse_args(["--trials", "1", "--run-dir", str(tmp_path), *extra])
 
 
-def _plan(args, env_id, tmp_path):
+def _plan(args, tmp_path):
     return plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
 
 
@@ -154,10 +152,10 @@ def test_resume_refuses_changed_randomization(tmp_path):
     trial_dir = tmp_path / "delay_0" / "trial_0"
     trial_dir.mkdir(parents=True)
     (trial_dir / "summary.json").write_text(json.dumps({"config": config}))
-    assert _plan(args, HALLWAY_KEYDOOR_ENV_ID, tmp_path) == ([], 1)
+    assert _plan(args, tmp_path) == ([], 1)
     randomized = _sweep_args(tmp_path, *base, "--randomize", "start")
     with pytest.raises(SystemExit, match="layout_randomization"):
-        _plan(randomized, HALLWAY_KEYDOOR_ENV_ID, tmp_path)
+        _plan(randomized, tmp_path)
 
 
 def test_sweep_rejects_randomization_on_unsupported_env(tmp_path):

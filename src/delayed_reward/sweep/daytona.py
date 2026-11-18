@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LABEL_APP = "delayed-reward"
+NEVER_AUTO_STOP = 0
 OVERRIDDEN_OPTIONS = {"--run-dir", "--delay", "--trial-ids", "--workers", "--results-dir"}
 
 
@@ -77,7 +78,7 @@ def _code_tarball() -> bytes:
     return buf.getvalue()
 
 
-class TrialFailed(Exception):
+class TrialFailedError(Exception):
     """The training command itself failed; retrying will not help."""
 
 
@@ -96,18 +97,15 @@ class Launcher:
         self.live: dict[str, object] = {}
         self.lock = threading.Lock()
 
-    # -- sandbox lifecycle -------------------------------------------------
     def _create(self, delay: int, trial: int):
         from daytona import CreateSandboxFromSnapshotParams, DaytonaRateLimitError
 
         params = CreateSandboxFromSnapshotParams(
             snapshot=self.snapshot,
-            name=f"dr-{self.run_dir.name}-d{delay}-t{trial}-{random.randrange(16**4):04x}"
-            .lower()
-            .replace("_", "-"),
+            name=f"dr-{self.run_dir.name}-d{delay}-t{trial}-{random.randrange(16**4):04x}".lower().replace("_", "-"),
             labels={"app": LABEL_APP, "run": self.run_dir.name, "delay": str(delay), "trial": str(trial)},
             env_vars={**self.env_vars, "OMP_NUM_THREADS": str(self.dargs.cpu)},
-            auto_stop_interval=0,  # training produces no sandbox events for hours
+            auto_stop_interval=NEVER_AUTO_STOP,
             ttl_minutes=int(self.dargs.ttl_hours * 60),
             spot=self.dargs.spot or None,
         )
@@ -123,10 +121,9 @@ class Launcher:
         raise RuntimeError("sandbox creation kept hitting rate limits")
 
     def _delete(self, sandbox) -> None:
+        """Delete once: only the caller that pops it from ``live`` deletes, so cleanups never race (409s)."""
         from daytona import DaytonaConflictError, DaytonaNotFoundError
 
-        # Only the caller that removes the sandbox from `live` deletes it, so the
-        # worker's cleanup and delete_all_live() never race (409 conflicts).
         with self.lock:
             if self.live.pop(sandbox.id, None) is None:
                 return
@@ -136,9 +133,9 @@ class Launcher:
                 return
             except DaytonaNotFoundError:
                 return
-            except DaytonaConflictError:  # state change in progress (e.g. still starting)
+            except DaytonaConflictError:
                 time.sleep(5 * (attempt + 1))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 print(f"WARN failed to delete sandbox {sandbox.id}: {type(exc).__name__}: {exc}", flush=True)
                 return
         print(f"WARN sandbox {sandbox.id} still busy; run --cleanup later", flush=True)
@@ -151,7 +148,6 @@ class Launcher:
         with ThreadPoolExecutor(max_workers=16) as pool:
             list(pool.map(self._delete, sandboxes))
 
-    # -- one trial ---------------------------------------------------------
     def run_trial(self, delay: int, trial: int) -> Path:
         last_exc: Exception | None = None
         for attempt in range(self.dargs.retries + 1):
@@ -159,9 +155,9 @@ class Launcher:
                 raise RuntimeError("cancelled")
             try:
                 return self._run_once(delay, trial)
-            except TrialFailed:
+            except TrialFailedError:
                 raise
-            except Exception as exc:  # noqa: BLE001 - infra errors (eviction, network) are retried
+            except Exception as exc:
                 last_exc = exc
                 if self.stop.is_set():
                     raise
@@ -205,7 +201,7 @@ class Launcher:
                     raise RuntimeError("cancelled")
                 try:
                     status = sandbox.process.get_session_command("trial", started.cmd_id)
-                except Exception:  # noqa: BLE001 - tolerate transient API/network blips
+                except Exception:
                     poll_errors += 1
                     if poll_errors >= 15:
                         raise
@@ -222,7 +218,7 @@ class Launcher:
                 log_path = log_dir / f"delay_{delay}_trial_{trial}.log"
                 log_path.write_bytes(log)
                 tail = log.decode(errors="replace").strip().splitlines()[-5:]
-                raise TrialFailed(f"exit={status.exit_code}, log={log_path}\n  " + "\n  ".join(tail))
+                raise TrialFailedError(f"exit={status.exit_code}, log={log_path}\n  " + "\n  ".join(tail))
 
             pack = sandbox.process.exec(
                 f"tar czf {home}/trial.tgz -C {remote_run}/delay_{delay} trial_{trial}", timeout=600

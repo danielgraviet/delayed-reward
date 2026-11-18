@@ -1,93 +1,35 @@
-"""Run independent tabular Q-learning trials concurrently in one run directory."""
+"""Run independent tabular Q-learning trials concurrently in one run directory, resuming completed ones."""
 
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
-from delayed_reward.environments.registry import DEFAULT_ENV_ID
-from delayed_reward.experiments.tabular import train_one_trial
-from delayed_reward.results.plotting import DEFAULT_ONSET_THRESHOLD
-from delayed_reward.results.saver import create_delay_dir, create_run_dir
-from delayed_reward.sweep.trials import plot_survival_if_any, run_in_processes, stash_incomplete
+from delayed_reward.cli.tabular import add_tabular_args, tabular_config_from_args, wandb_from_args
+from delayed_reward.results.saver import create_run_dir
+from delayed_reward.sweep.tabular import run_trial_task
+from delayed_reward.sweep.trials import plan_tasks, plot_survival_if_any, run_in_processes
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--episodes", type=int, default=10000)
-    parser.add_argument("--alpha", type=float, default=0.1)
-    parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--epsilon", type=float, default=0.1)
-    parser.add_argument("--seed", type=int, default=0)
+    add_tabular_args(parser)
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--workers", type=int, default=6)
-    parser.add_argument("--log-every", type=int, default=100)
-    parser.add_argument("--delay", type=int, nargs="+", default=[0])
-    parser.add_argument("--env-id", default=DEFAULT_ENV_ID)
-    parser.add_argument("--max-steps", type=int, default=None)
-    parser.add_argument("--onset-threshold", type=float, default=DEFAULT_ONSET_THRESHOLD)
-    parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument(
         "--run-dir",
         type=Path,
         default=None,
         help="Existing run directory to resume; completed, matching trials are skipped",
     )
-    parser.add_argument("--wandb", action="store_true", help="Log each trial to Weights & Biases")
-    parser.add_argument("--wandb-project", default="delayed-reward")
-    parser.add_argument("--wandb-entity", default=None)
     return parser
-
-
-def _expected_config(args: argparse.Namespace, delay: int, trial: int) -> dict[str, object]:
-    return {
-        "episodes": args.episodes,
-        "alpha": args.alpha,
-        "gamma": args.gamma,
-        "epsilon": args.epsilon,
-        "env_seed": args.seed,
-        "trial": trial,
-        "log_every": args.log_every,
-        "delay": delay,
-        "max_steps": args.max_steps,
-        "env": args.env_id,
-    }
-
-
-def _run_trial(task: tuple[argparse.Namespace, Path, int, int]) -> Path:
-    args, run_dir, delay, trial = task
-    return train_one_trial(
-        delay=delay,
-        trial=trial,
-        env_id=args.env_id,
-        seed=args.seed,
-        episodes=args.episodes,
-        alpha=args.alpha,
-        gamma=args.gamma,
-        epsilon=args.epsilon,
-        log_every=args.log_every,
-        delay_dir=create_delay_dir(run_dir, delay),
-        max_steps=args.max_steps,
-        wandb_enabled=args.wandb,
-        wandb_project=args.wandb_project,
-        wandb_entity=args.wandb_entity,
-        wandb_group=run_dir.name,
-    )
 
 
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
-    delays = list(dict.fromkeys(args.delay))
-    if args.episodes < 1 or args.trials < 1 or args.workers < 1 or args.log_every < 1:
-        raise SystemExit("episodes, trials, workers, and log-every must be >= 1")
-    if any(delay < 0 for delay in delays):
-        raise SystemExit("delay values must be >= 0")
-    if args.max_steps is not None and args.max_steps < 1:
-        raise SystemExit("max-steps must be >= 1")
-    if not 0.0 <= args.onset_threshold <= 1.0:
-        raise SystemExit("onset-threshold must be in [0, 1]")
-
+    if args.trials < 1 or args.workers < 1:
+        raise SystemExit("trials and workers must be >= 1")
+    template, delays = tabular_config_from_args(args)
     if args.run_dir is None:
         run_dir = create_run_dir(args.results_dir)
     else:
@@ -95,35 +37,16 @@ def main(argv: list[str] | None = None) -> None:
         if not run_dir.is_dir():
             raise SystemExit(f"run directory does not exist: {run_dir}")
 
-    tasks: list[tuple[int, int, tuple[argparse.Namespace, Path, int, int]]] = []
-    skipped = 0
-    for delay in delays:
-        delay_dir = create_delay_dir(run_dir, delay)
-        for trial in range(args.trials):
-            summary_path = delay_dir / f"trial_{trial}" / "summary.json"
-            if summary_path.exists():
-                saved_config = json.loads(summary_path.read_text()).get("config", {})
-                expected = _expected_config(args, delay, trial)
-                mismatches = {
-                    key: (saved_config.get(key), value)
-                    for key, value in expected.items()
-                    if saved_config.get(key) != value
-                }
-                if mismatches:
-                    raise SystemExit(f"refusing to mix settings in {summary_path}: {mismatches}")
-                skipped += 1
-                continue
-            stash_incomplete(run_dir, delay, trial)
-            tasks.append((delay, trial, (args, run_dir, delay, trial)))
-
+    pending, skipped = plan_tasks(template, run_dir, delays, range(args.trials))
+    wandb = wandb_from_args(args, group=run_dir.name)
     print(f"RUN_DIR {run_dir.resolve()}", flush=True)
     print(
-        f"DELAYS {delays} TRIALS {args.trials} WORKERS {args.workers} "
-        f"PENDING {len(tasks)} SKIPPED {skipped}",
+        f"DELAYS {delays} TRIALS {args.trials} WORKERS {args.workers} PENDING {len(pending)} SKIPPED {skipped}",
         flush=True,
     )
-    failures = run_in_processes(_run_trial, tasks, workers=args.workers)
-    plot_survival_if_any(run_dir, smooth_window=args.log_every, onset_threshold=args.onset_threshold)
+    tasks = [(config.delay, config.trial, (config, run_dir, wandb)) for config in pending]
+    failures = run_in_processes(run_trial_task, tasks, workers=args.workers)
+    plot_survival_if_any(run_dir, smooth_window=template.log_every, onset_threshold=args.onset_threshold)
     if failures:
         raise SystemExit(f"{len(failures)} trial(s) failed; resume with --run-dir")
     print(f"All delays finished. Results under {run_dir.resolve()}", flush=True)

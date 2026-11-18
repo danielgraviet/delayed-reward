@@ -1,4 +1,10 @@
-"""Environment ids used by the experiments, registered with Gymnasium on import."""
+"""Environment ids used by the experiments, registered with Gymnasium on import.
+
+The ``RectangularDoorKeyEnv`` ids use fixed (canonical) layouts, identical for
+every seed. ``KEYDOOR_ENV_ID`` is MiniGrid's built-in DoorKeyEnv, which can't
+take distractors; ``KEYDOOR_DISTRACTOR_ENV_ID`` reproduces its 8x8 room through
+``RectangularDoorKeyEnv`` so distractor robustness is measured on the same room size.
+"""
 
 from __future__ import annotations
 
@@ -27,28 +33,29 @@ if RECTANGULAR_ENV_ID not in registry:
 
 _RECTANGULAR_DOORKEY_ENTRY_POINT = "delayed_reward.environments.rectangular:RectangularDoorKeyEnv"
 
-# Fixed (canonical) layouts, identical for every seed.
 if HALLWAY_KEYDOOR_ENV_ID not in registry:
     register(
         id=HALLWAY_KEYDOOR_ENV_ID,
         entry_point=_RECTANGULAR_DOORKEY_ENTRY_POINT,
         kwargs={
-            "width": 20, "height": 6,
-            "agent_start_pos": (1, 3), "key_pos": (7, 1), "door_pos": (15, 2),
+            "width": 20,
+            "height": 6,
+            "agent_start_pos": (1, 3),
+            "key_pos": (7, 1),
+            "door_pos": (15, 2),
         },
     )
 
-# KEYDOOR_ENV_ID is MiniGrid's own built-in DoorKeyEnv, which doesn't accept
-# num_distractors. This variant reproduces its 8x8 layout through our
-# RectangularDoorKeyEnv so distractor robustness can be checked against the
-# same room size the default keydoor training uses.
 if KEYDOOR_DISTRACTOR_ENV_ID not in registry:
     register(
         id=KEYDOOR_DISTRACTOR_ENV_ID,
         entry_point=_RECTANGULAR_DOORKEY_ENTRY_POINT,
         kwargs={
-            "width": 8, "height": 8,
-            "agent_start_pos": (1, 4), "key_pos": (2, 2), "door_pos": (5, 4),
+            "width": 8,
+            "height": 8,
+            "agent_start_pos": (1, 4),
+            "key_pos": (2, 2),
+            "door_pos": (5, 4),
         },
     )
 

@@ -12,6 +12,7 @@ from delayed_reward.agents.tabular.observers import LoggingObserver
 from delayed_reward.agents.tabular.policies import EpsilonGreedyPolicy, GreedyPolicy
 from delayed_reward.agents.tabular.q_learning import TabularQLearningAgent
 from delayed_reward.agents.tabular.trainer import Trainer
+from delayed_reward.config import TabularTrialConfig, WandbSettings
 from delayed_reward.environments.factory import create_empty_env
 from delayed_reward.environments.registry import DEFAULT_ENV_ID
 from delayed_reward.protocols import QValueStore
@@ -19,90 +20,48 @@ from delayed_reward.results.saver import create_trial_dir, save_metrics
 from delayed_reward.tracking import start_wandb_run
 
 
-def policy_seed_for(base_seed: int, delay: int, trial: int) -> int:
-    """Independent exploration RNG per (delay, trial); env layout stays fixed."""
-    return base_seed + trial + 10_003 * delay
-
-
-def train_one_trial(
-    *,
-    delay: int,
-    trial: int,
-    env_id: str,
-    seed: int,
-    episodes: int,
-    alpha: float,
-    gamma: float,
-    epsilon: float,
-    log_every: int,
-    delay_dir: Path,
-    max_steps: int | None = None,
-    wandb_enabled: bool = False,
-    wandb_project: str = "delayed-reward",
-    wandb_entity: str | None = None,
-    wandb_group: str | None = None,
-) -> Path:
+def train_one_trial(config: TabularTrialConfig, delay_dir: Path, *, wandb: WandbSettings | None = None) -> Path:
     """Train one (delay, trial) replicate and write artifacts under ``delay_dir``."""
-    env_seed = seed
-    explore_seed = policy_seed_for(seed, delay, trial)
-    print(
-        f"\n=== delay={delay} trial={trial} "
-        f"(env_seed={env_seed}, policy_seed={explore_seed}) ==="
-    )
+    delay, trial = config.delay, config.trial
+    print(f"\n=== delay={delay} trial={trial} (env_seed={config.seed}, policy_seed={config.policy_seed}) ===")
 
-    env = create_empty_env(
-        env_id=env_id, seed=env_seed, delay=delay, max_steps=max_steps
-    )
-    rng = np.random.default_rng(explore_seed)
-    policy = EpsilonGreedyPolicy(epsilon=epsilon, rng=rng)
-    agent = TabularQLearningAgent(
-        n_actions=env.n_actions,
-        policy=policy,
-        alpha=alpha,
-        gamma=gamma,
-    )
-    config = {
-        "episodes": episodes, "alpha": alpha, "gamma": gamma, "epsilon": epsilon,
-        "env_seed": env_seed, "policy_seed": explore_seed, "trial": trial,
-        "log_every": log_every, "delay": delay, "max_steps": max_steps, "env": env_id,
-        "algorithm": "tabular-q-learning",
-    }
-    wandb_run = start_wandb_run(
-        enabled=wandb_enabled, project=wandb_project, entity=wandb_entity,
-        group=wandb_group, name=f"delay-{delay}-trial-{trial}", config=config,
-    )
-    observer = LoggingObserver(log_every=log_every, wandb_run=wandb_run)
+    env = create_empty_env(env_id=config.env_id, seed=config.seed, delay=delay, max_steps=config.max_steps)
+    policy = EpsilonGreedyPolicy(epsilon=config.epsilon, rng=np.random.default_rng(config.policy_seed))
+    agent = TabularQLearningAgent(n_actions=env.n_actions, policy=policy, alpha=config.alpha, gamma=config.gamma)
+    settings = config.to_dict()
+    wandb_run = None
+    if wandb is not None:
+        wandb_run = start_wandb_run(
+            enabled=True,
+            project=wandb.project,
+            entity=wandb.entity,
+            group=wandb.group,
+            name=f"delay-{delay}-trial-{trial}",
+            config=settings,
+        )
+    observer = LoggingObserver(log_every=config.log_every, wandb_run=wandb_run)
     trainer = Trainer(env, agent, observers=[observer])
 
     try:
-        trainer.train(episodes)
+        trainer.train(config.episodes)
     finally:
         env.close()
 
     trial_dir = create_trial_dir(delay_dir, trial)
-    save_metrics(
-        trial_dir,
-        rewards=observer.rewards,
-        steps=observer.steps,
-        config=config,
-        window=log_every,
-    )
+    save_metrics(trial_dir, rewards=observer.rewards, steps=observer.steps, config=settings, window=config.log_every)
     gif_path = record_greedy_policy_gif(
         agent.q_store,
-        seed=env_seed,
+        seed=config.seed,
         delay=delay,
-        env_id=env_id,
+        env_id=config.env_id,
         output_path=trial_dir / "policy.gif",
-        max_steps=max_steps if max_steps is not None else 200,
-        episode_max_steps=max_steps,
+        max_steps=config.max_steps if config.max_steps is not None else 200,
+        episode_max_steps=config.max_steps,
     )
 
     if observer.rewards:
-        last = observer.rewards[-log_every:]
-        print(
-            f"delay={delay} trial={trial} final window mean return "
-            f"({len(last)} eps): {sum(last) / len(last):.3f}"
-        )
+        last = observer.rewards[-config.log_every :]
+        print(f"delay={delay} trial={trial} final window mean return ({len(last)} eps): {sum(last) / len(last):.3f}")
     print(f"Saved to {trial_dir.resolve()}")
     print(f"Policy GIF: {gif_path.resolve()}")
     if wandb_run is not None:

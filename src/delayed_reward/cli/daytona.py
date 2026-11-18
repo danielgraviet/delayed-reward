@@ -28,14 +28,14 @@ from delayed_reward.cli import dqn_sweep
 from delayed_reward.sweep.daytona import (
     LABEL_APP,
     Launcher,
-    TrialFailed,
+    TrialFailedError,
     cleanup,
     strip_overridden,
     wandb_env,
 )
 from delayed_reward.sweep.daytona_snapshot import ensure_snapshot
-from delayed_reward.sweep.dqn import plan_tasks, summarize_time_to_optimal
-from delayed_reward.sweep.trials import plot_survival_if_any
+from delayed_reward.sweep.dqn import summarize_time_to_optimal
+from delayed_reward.sweep.trials import plan_tasks, plot_survival_if_any
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,6 +58,19 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--dry-run", action="store_true", help="Print the plan and exit")
     group.add_argument("--cleanup", action="store_true", help=f"Delete all sandboxes labelled app={LABEL_APP}")
     return parser
+
+
+def _raise_interrupt(signum: int, _frame: object) -> None:
+    raise KeyboardInterrupt(signal.Signals(signum).name)
+
+
+def _route_termination_to_interrupt() -> None:
+    """Send SIGTERM/SIGHUP (kill, closed SSH session) through the Ctrl-C path.
+
+    That path deletes every live sandbox, instead of leaving them billing until ``--ttl-hours``.
+    """
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, _raise_interrupt)
 
 
 def main() -> None:
@@ -100,13 +113,7 @@ def main() -> None:
     snapshot = ensure_snapshot(dargs.cpu, dargs.memory, dargs.disk)
     launcher = Launcher(dargs, strip_overridden(sweep_argv), run_dir, snapshot, env_vars)
 
-    # Route SIGTERM/SIGHUP (kill, closed SSH session) through the Ctrl-C path so
-    # live sandboxes are deleted instead of billing until --ttl-hours.
-    def _interrupt(signum, _frame):
-        raise KeyboardInterrupt(signal.Signals(signum).name)
-
-    for sig in (signal.SIGTERM, signal.SIGHUP):
-        signal.signal(sig, _interrupt)
+    _route_termination_to_interrupt()
 
     failures: list[tuple[int, int, BaseException]] = []
     pool = ThreadPoolExecutor(max_workers=dargs.max_sandboxes)
@@ -121,14 +128,14 @@ def main() -> None:
                 if exc is not None:
                     failures.append((delay, trial, exc))
                     print(f"FAILED delay={delay} trial={trial}: {exc}", flush=True)
-                    if not isinstance(exc, TrialFailed):
+                    if not isinstance(exc, TrialFailedError):
                         traceback.print_exception(exc)
     except KeyboardInterrupt:
         print("\nInterrupted: cancelling trials and deleting sandboxes...", flush=True)
         launcher.stop.set()
         for future in futures:
             future.cancel()
-        raise SystemExit(130)
+        raise SystemExit(130) from None
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
         launcher.delete_all_live()

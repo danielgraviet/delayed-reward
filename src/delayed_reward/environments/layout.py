@@ -38,10 +38,8 @@ class LayoutRandomization:
         requested = set(names)
         unknown = requested.difference(cls.element_names())
         if unknown:
-            raise ValueError(
-                f"unknown layout element(s) {sorted(unknown)}; choose from {list(cls.element_names())}"
-            )
-        return cls(**{name: True for name in requested})
+            raise ValueError(f"unknown layout element(s) {sorted(unknown)}; choose from {list(cls.element_names())}")
+        return cls(**dict.fromkeys(requested, True))
 
     def names(self) -> list[str]:
         """Enabled element names in canonical order (stable for configs and resume checks)."""
@@ -50,6 +48,9 @@ class LayoutRandomization:
     @property
     def any(self) -> bool:
         return bool(self.names())
+
+
+NO_RANDOMIZATION = LayoutRandomization()
 
 
 class SeedOnceWrapper(gym.Wrapper):

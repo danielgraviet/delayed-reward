@@ -9,6 +9,8 @@ reaching the goal sooner over spinning in place indefinitely.
 
 from __future__ import annotations
 
+from typing import SupportsFloat
+
 import gymnasium as gym
 
 
@@ -21,5 +23,5 @@ class StepPenaltyWrapper(gym.RewardWrapper):
         super().__init__(env)
         self.penalty = penalty
 
-    def reward(self, reward: float) -> float:
+    def reward(self, reward: SupportsFloat) -> float:
         return float(reward) - self.penalty

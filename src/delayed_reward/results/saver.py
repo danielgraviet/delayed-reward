@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -13,7 +13,7 @@ def create_run_dir(base: Path | str = "results") -> Path:
     """Create a timestamped results subdirectory and return its path."""
     root = Path(base)
     root.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     run_dir = root / f"run_{stamp}"
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir
@@ -59,9 +59,7 @@ def save_metrics(
         "n_episodes": len(rewards),
         "final_window": window,
         "final_mean_return": (sum(last) / len(last)) if last else None,
-        "final_mean_steps": (
-            sum(steps[-window:]) / min(window, len(steps)) if steps else None
-        ),
+        "final_mean_steps": (sum(steps[-window:]) / min(window, len(steps)) if steps else None),
         **(extra or {}),
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")

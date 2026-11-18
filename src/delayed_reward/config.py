@@ -1,10 +1,10 @@
-"""Typed configuration for a DQN trial: the single definition of what a trial runs.
+"""Typed trial configuration: the single definition of what a trial runs.
 
 Every consumer reads these objects instead of re-listing settings: the CLIs
-build them from arguments, ``train_trial`` builds the env and model from them,
-and ``DQNTrialConfig.to_dict`` is the one serialization used for W&B,
-``summary.json`` and resume matching. Constructing an invalid config raises
-``ValueError``, so bad settings fail before any training starts.
+build them from arguments, the experiments build env and learner from them,
+and ``to_dict`` is the one serialization used for W&B, ``summary.json`` and
+resume matching. Constructing an invalid config raises ``ValueError``, so bad
+settings fail before any training starts.
 """
 
 from __future__ import annotations
@@ -12,7 +12,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
+from typing import Protocol, Self
 
+from delayed_reward.environments.layout import NO_RANDOMIZATION, LayoutRandomization
 from delayed_reward.environments.registry import (
     DEFAULT_ENV_ID,
     HALLWAY_KEYDOOR_ENV_ID,
@@ -21,7 +23,6 @@ from delayed_reward.environments.registry import (
     fixed_layout_source,
     supports_layout_randomization,
 )
-from delayed_reward.environments.layout import LayoutRandomization
 
 
 class EnvKind(StrEnum):
@@ -63,7 +64,7 @@ class EnvSpec:
     max_steps: int | None = None
     subgoal_reward: float = 0.3
     step_penalty: float = 0.0
-    randomize: LayoutRandomization = LayoutRandomization()
+    randomize: LayoutRandomization = NO_RANDOMIZATION
 
     def __post_init__(self) -> None:
         _coerce(self, "kind", EnvKind)
@@ -182,6 +183,10 @@ class DQNTrialConfig:
             raise ValueError("schedule_timesteps must be in [1, total_timesteps]")
 
     @property
+    def delay(self) -> int:
+        return self.env.delay
+
+    @property
     def trial_seed(self) -> int:
         return self.seed + self.trial
 
@@ -240,7 +245,7 @@ class DQNTrialConfig:
 
 @dataclass(frozen=True, kw_only=True)
 class WandbSettings:
-    """Where a trial logs to W&B. """
+    """Where a trial logs to W&B."""
 
     project: str = "delayed-reward"
     entity: str | None = None
@@ -252,9 +257,83 @@ class WandbSettings:
             raise ValueError(f"wandb log_every must be >= 1, got {self.log_every}")
 
 
-def config_mismatches(
-    saved: Mapping[str, object], config: DQNTrialConfig
-) -> dict[str, tuple[object, object]]:
+@dataclass(frozen=True, kw_only=True)
+class TabularTrialConfig:
+    """Everything that determines one tabular Q-learning trial's outcome.
+
+    The env layout is seeded by ``seed`` for every trial; exploration uses an
+    independent ``policy_seed`` per (delay, trial).
+    """
+
+    env_id: str = DEFAULT_ENV_ID
+    delay: int = 0
+    max_steps: int | None = None
+    episodes: int = 10_000
+    alpha: float = 0.1
+    gamma: float = 0.99
+    epsilon: float = 0.1
+    seed: int = 0
+    trial: int = 0
+    log_every: int = 100
+
+    def __post_init__(self) -> None:
+        if self.delay < 0:
+            raise ValueError(f"delay must be >= 0, got {self.delay}")
+        if self.max_steps is not None and self.max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1, got {self.max_steps}")
+        if self.episodes < 1:
+            raise ValueError(f"episodes must be >= 1, got {self.episodes}")
+        if self.log_every < 1:
+            raise ValueError(f"log_every must be >= 1, got {self.log_every}")
+        if self.trial < 0:
+            raise ValueError(f"trial must be >= 0, got {self.trial}")
+        if not 0 < self.alpha <= 1:
+            raise ValueError(f"alpha must be in (0, 1], got {self.alpha}")
+        if not 0 <= self.gamma <= 1:
+            raise ValueError(f"gamma must be in [0, 1], got {self.gamma}")
+        if not 0 <= self.epsilon <= 1:
+            raise ValueError(f"epsilon must be in [0, 1], got {self.epsilon}")
+
+    @property
+    def policy_seed(self) -> int:
+        return self.seed + self.trial + 10_003 * self.delay
+
+    def for_trial(self, *, delay: int, trial: int) -> TabularTrialConfig:
+        return replace(self, delay=delay, trial=trial)
+
+    def to_dict(self) -> dict[str, object]:
+        """JSON-ready settings, as recorded in ``summary.json`` and W&B and matched on resume."""
+        return {
+            "algorithm": "tabular-q-learning",
+            "env": self.env_id,
+            "delay": self.delay,
+            "max_steps": self.max_steps,
+            "episodes": self.episodes,
+            "alpha": self.alpha,
+            "gamma": self.gamma,
+            "epsilon": self.epsilon,
+            "env_seed": self.seed,
+            "policy_seed": self.policy_seed,
+            "trial": self.trial,
+            "log_every": self.log_every,
+        }
+
+
+class TrialConfig(Protocol):
+    """What sweep planning needs from any trial config."""
+
+    @property
+    def delay(self) -> int: ...
+
+    @property
+    def trial(self) -> int: ...
+
+    def for_trial(self, *, delay: int, trial: int) -> Self: ...
+
+    def to_dict(self) -> dict[str, object]: ...
+
+
+def config_mismatches(saved: Mapping[str, object], config: TrialConfig) -> dict[str, tuple[object, object]]:
     """Settings where a saved ``summary.json`` config differs from ``config``, as (saved, requested).
 
     A key missing from ``saved`` counts as a mismatch.

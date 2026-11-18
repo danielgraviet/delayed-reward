@@ -15,9 +15,7 @@ class DictQValueStore:
 
     def __init__(self, n_actions: int) -> None:
         self._n_actions = n_actions
-        self._table: dict[Hashable, np.ndarray] = defaultdict(
-            lambda: np.zeros(self._n_actions, dtype=np.float64)
-        )
+        self._table: dict[Hashable, np.ndarray] = defaultdict(lambda: np.zeros(self._n_actions, dtype=np.float64))
 
     def get(self, state: Hashable) -> np.ndarray:
         return self._table[state]
@@ -60,10 +58,7 @@ class TabularQLearningAgent:
         truncated: bool,
     ) -> None:
         done = terminated or truncated
-        if done:
-            td_target = reward
-        else:
-            td_target = reward + self._gamma * float(np.max(self._q.get(next_state)))
+        td_target = reward if done else reward + self._gamma * float(np.max(self._q.get(next_state)))
         self._q.update(state, action, td_target, self._alpha)
 
     @property

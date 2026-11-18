@@ -94,16 +94,13 @@ def add_dqn_args(parser: argparse.ArgumentParser) -> None:
             "--schedule-timesteps (default --timesteps), then held"
         ),
     )
-    parser.add_argument(
-        "--lr-final", type=float, default=0.0, help="Final learning rate for --lr-schedule linear"
-    )
+    parser.add_argument("--lr-final", type=float, default=0.0, help="Final learning rate for --lr-schedule linear")
     parser.add_argument(
         "--eval-every-episodes",
         type=int,
         default=20,
         help=(
-            "Run a deterministic (exploration-off) evaluation every N completed "
-            "training episodes. Pass 0 to disable."
+            "Run a deterministic (exploration-off) evaluation every N completed training episodes. Pass 0 to disable."
         ),
     )
     parser.add_argument(

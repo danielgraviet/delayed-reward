@@ -1,4 +1,8 @@
-"""Tests for SubgoalDelayedRewardWrapper against a real MiniGrid DoorKey env."""
+"""Tests for SubgoalDelayedRewardWrapper against a real MiniGrid DoorKey env.
+
+The fixed DoorKey-6x6 seed-0 path picks up the key on step index 1 and reaches the
+goal on step index 13.
+"""
 
 from __future__ import annotations
 
@@ -13,14 +17,23 @@ from delayed_reward.environments.subgoal_delayed_reward import (
     SubgoalDelayedRewardWrapper,
 )
 
-# KeyDoorActionWrapper: 0=left, 1=right, 2=forward, 3=pickup, 4=toggle
 LEFT, RIGHT, FORWARD, PICKUP, TOGGLE = 0, 1, 2, 3, 4
 
-# DoorKey-6x6 seed 0: pick up the key, cross through the door, reach the goal.
-# Pickup happens on step index 1; the goal is reached on step index 13.
 PATH_TO_GOAL_6X6 = (
-    LEFT, PICKUP, FORWARD, LEFT, FORWARD, FORWARD, RIGHT, TOGGLE,
-    FORWARD, FORWARD, RIGHT, FORWARD, FORWARD, FORWARD,
+    LEFT,
+    PICKUP,
+    FORWARD,
+    LEFT,
+    FORWARD,
+    FORWARD,
+    RIGHT,
+    TOGGLE,
+    FORWARD,
+    FORWARD,
+    RIGHT,
+    FORWARD,
+    FORWARD,
+    FORWARD,
 )
 PICKUP_STEP_INDEX = 1
 GOAL_STEP_INDEX = 13
@@ -74,6 +87,7 @@ def test_delay_zero_delivers_subgoal_reward_instantly_at_pickup() -> None:
 
 
 def test_delay_holds_subgoal_reward_then_delivers_after_n_steps() -> None:
+    """The subgoal reward arrives ``delay`` steps after pickup; the goal later on the path still pays instantly."""
     delay = 2
     env = make_env(delay=delay)
     env.reset()
@@ -90,36 +104,34 @@ def test_delay_holds_subgoal_reward_then_delivers_after_n_steps() -> None:
         assert reward == 0.0
         assert terminated is False
 
-    delivered_reward, delivered_terminated, _t, delivered_info = outcomes[
-        PICKUP_STEP_INDEX + delay
-    ]
+    delivered_reward, delivered_terminated, _t, delivered_info = outcomes[PICKUP_STEP_INDEX + delay]
     assert delivered_reward == 1.0
     assert delivered_terminated is False
     assert delivered_info.get("subgoal_reward_delivered") is True
 
-    # The goal, reached later on the same fixed path, still pays out instantly.
     goal_reward, goal_terminated, _t, _info = outcomes[GOAL_STEP_INDEX]
     assert goal_reward == 1.0
     assert goal_terminated is True
 
 
 def test_pending_subgoal_reward_is_flushed_on_the_terminating_step() -> None:
-    # The delay outlives the remaining path to the goal, so the pending subgoal
-    # reward is paid on the goal step instead of leaking into the next episode.
+    """When the delay outlives the path, the goal step pays goal + pending subgoal reward.
+
+    Nothing leaks into the next episode.
+    """
     env = make_env(delay=20)
     env.reset()
     outcomes = step_sequence(env, PATH_TO_GOAL_6X6)
 
     assert len(outcomes) == len(PATH_TO_GOAL_6X6)
     reward, terminated, truncated, info = outcomes[-1]
-    assert reward == 2.0  # goal reward + flushed subgoal reward
+    assert reward == 2.0
     assert terminated is True
     assert truncated is False
     assert info["subgoal_reward_delivered"] is True
     assert info["subgoal_reward_origin_step"] == PICKUP_STEP_INDEX + 1
     assert info["subgoal_reward_amount"] == 1.0
 
-    # Nothing is left over for the next episode.
     env.reset()
     for _ in range(30):
         _obs, reward, terminated, truncated, info = env.step(LEFT)
@@ -131,9 +143,10 @@ def test_pending_subgoal_reward_is_flushed_on_the_terminating_step() -> None:
 
 
 def test_reset_clears_pending_subgoal_state() -> None:
+    """A subgoal reward pending at reset is dropped."""
     env = make_env(delay=5)
     env.reset()
-    step_sequence(env, PATH_TO_GOAL_6X6[: PICKUP_STEP_INDEX + 1])  # picks up the key
+    step_sequence(env, PATH_TO_GOAL_6X6[: PICKUP_STEP_INDEX + 1])
 
     env.reset()
     _obs, reward, terminated, truncated, info = env.step(LEFT)
@@ -147,8 +160,7 @@ def test_reset_clears_pending_subgoal_state() -> None:
 
 
 def test_pending_subgoal_reward_is_flushed_on_truncation() -> None:
-    # Pick up the key, then spin in place until the step limit truncates the
-    # episode before the 50-step delay has elapsed.
+    """Picking up the key and spinning until truncation, before the 50-step delay, still pays the subgoal."""
     max_steps = 10
     env: gym.Env = gym.make("MiniGrid-DoorKey-6x6-v0", max_steps=max_steps)
     env = KeyDoorActionWrapper(env)

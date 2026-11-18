@@ -3,17 +3,35 @@
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass
+from typing import cast
 
 import gymnasium as gym
 import numpy as np
+import torch as th
 from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 
 from delayed_reward.config import EvalSpec, RewardAttribution
 from delayed_reward.tracking import log_metrics
 
 
+@dataclass(frozen=True, kw_only=True)
+class EvalCheckpoint:
+    """One greedy-eval checkpoint and a CPU copy of the policy weights at that point."""
+
+    train_episode: int
+    timestep: int
+    eval_return: float
+    eval_steps: float
+    state_dict: dict[str, th.Tensor]
+
+
 class EpisodeMetricsCallback(BaseCallback):
-    """Collect episode metrics and optionally relabel delayed subgoal rewards."""
+    """Collect episode metrics and optionally relabel delayed subgoal rewards.
+
+    SB3's ``train/`` and ``rollout/`` stats are only gathered when logging to W&B.
+    """
 
     def __init__(
         self,
@@ -33,7 +51,7 @@ class EpisodeMetricsCallback(BaseCallback):
     def _on_step(self) -> bool:
         infos = self.locals["infos"]
         metrics: dict[str, float] = {}
-        buffer = self.model.replay_buffer
+        buffer = cast(OffPolicyAlgorithm, self.model).replay_buffer
         if buffer is not None:
             current_index = (buffer.pos - 1) % buffer.buffer_size
             for info in infos:
@@ -56,19 +74,22 @@ class EpisodeMetricsCallback(BaseCallback):
             if done and "episode" in info:
                 self.rewards.append(float(info["episode"]["r"]))
                 self.steps.append(int(info["episode"]["l"]))
-                metrics.update({
-                    "episode/return": float(info["episode"]["r"]),
-                    "episode/steps": float(info["episode"]["l"]),
-                    "episode/count": float(len(self.rewards)),
-                })
-        # SB3's train/rollout stats are only gathered for W&B; skip them without a run.
+                metrics.update(
+                    {
+                        "episode/return": float(info["episode"]["r"]),
+                        "episode/steps": float(info["episode"]["l"]),
+                        "episode/count": float(len(self.rewards)),
+                    }
+                )
         if self.wandb_run is not None and self.num_timesteps % self.log_every == 0:
             values = self.model.logger.name_to_value
-            metrics.update({
-                key.replace("/", "_"): float(value)
-                for key, value in values.items()
-                if key.startswith(("train/", "rollout/")) and np.isscalar(value)
-            })
+            metrics.update(
+                {
+                    key.replace("/", "_"): float(value)
+                    for key, value in values.items()
+                    if key.startswith(("train/", "rollout/")) and isinstance(value, int | float | np.number)
+                }
+            )
             metrics["timesteps"] = float(self.num_timesteps)
         if metrics:
             log_metrics(self.wandb_run, metrics, step=int(self.num_timesteps))
@@ -133,7 +154,7 @@ class GreedyEvalCallback(BaseCallback):
         self._optimal_streak = 0
         self.first_optimal: dict[str, int] | None = None
         self.sustained_optimal: dict[str, int] | None = None
-        self._window: deque[dict[str, object]] = deque(maxlen=spec.checkpoint_window)
+        self._window: deque[EvalCheckpoint] = deque(maxlen=spec.checkpoint_window)
 
     def _run_eval(self) -> tuple[float, float, bool]:
         """Return (mean return, mean length, whether every episode was an optimal solve)."""
@@ -147,9 +168,7 @@ class GreedyEvalCallback(BaseCallback):
             reached_goal = False
             for _ in range(self.max_steps):
                 action, _ = self.model.predict(observation, deterministic=True)
-                observation, reward, terminated, truncated, _info = self.eval_env.step(
-                    int(action)
-                )
+                observation, reward, terminated, truncated, _info = self.eval_env.step(int(action))
                 total_reward += float(reward)
                 length += 1
                 if terminated or truncated:
@@ -174,16 +193,16 @@ class GreedyEvalCallback(BaseCallback):
                     self.eval_optimal.append(optimal)
                     self._record_optimal(optimal)
                     self._window.append(
-                        {
-                            "train_episode": self._train_episode_count,
-                            "timestep": int(self.num_timesteps),
-                            "return": eval_return,
-                            "steps": eval_length,
-                            "state_dict": {
+                        EvalCheckpoint(
+                            train_episode=self._train_episode_count,
+                            timestep=int(self.num_timesteps),
+                            eval_return=eval_return,
+                            eval_steps=eval_length,
+                            state_dict={
                                 key: value.detach().clone().cpu()
                                 for key, value in self.model.policy.state_dict().items()
                             },
-                        }
+                        )
                     )
         return not (self.stop_on_sustained and self.sustained_optimal is not None)
 
@@ -214,8 +233,8 @@ class GreedyEvalCallback(BaseCallback):
             "stopped_early": self.stop_on_sustained and self.sustained_optimal is not None,
         }
 
-    def best_in_window(self) -> dict[str, object] | None:
-        """Return the window entry with the highest return (fewest steps breaks ties)."""
+    def best_in_window(self) -> EvalCheckpoint | None:
+        """Return the window checkpoint with the highest return (fewest steps breaks ties)."""
         if not self._window:
             return None
-        return min(self._window, key=lambda entry: (-entry["return"], entry["steps"]))
+        return min(self._window, key=lambda checkpoint: (-checkpoint.eval_return, checkpoint.eval_steps))

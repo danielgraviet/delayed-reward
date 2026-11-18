@@ -144,9 +144,7 @@ def main(argv: list[str] | None = None) -> None:
                 render_mode="rgb_array",
             )
             try:
-                save_rollout_gif(
-                    model, gif_env, max_steps=args.max_steps, path=args.gif_dir / f"{label}.gif"
-                )
+                save_rollout_gif(model, gif_env, max_steps=args.max_steps, path=args.gif_dir / f"{label}.gif")
             finally:
                 gif_env.close()
 

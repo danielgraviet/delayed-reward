@@ -6,6 +6,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from delayed_reward.environments.unwrap import minigrid_env
+
 
 class DQNObservationWrapper(gym.ObservationWrapper):
     """Flatten the fully observed grid and agent pose into a numeric vector."""
@@ -26,9 +28,9 @@ class DQNObservationWrapper(gym.ObservationWrapper):
 
     def observation(self, observation: dict[str, object]) -> np.ndarray:
         grid = np.asarray(observation["image"], dtype=np.float32).reshape(-1)
-        unwrapped = self.env.unwrapped
-        x, y = (int(value) for value in unwrapped.agent_pos)
-        direction = int(unwrapped.agent_dir)
+        core = minigrid_env(self.env)
+        x, y = (int(value) for value in core.agent_pos)
+        direction = int(core.agent_dir)
         pose = np.zeros(6, dtype=np.float32)
         pose[0] = x / max(1, self._width - 1)
         pose[1] = y / max(1, self._height - 1)

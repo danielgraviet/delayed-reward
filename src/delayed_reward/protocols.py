@@ -6,6 +6,7 @@ from collections.abc import Hashable, Mapping
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
+import gymnasium as gym
 import numpy as np
 
 
@@ -37,7 +38,7 @@ class Environment(Protocol):
 class StateEncoder(Protocol):
     """Maps a raw Gymnasium observation (+ env) into a hashable state key."""
 
-    def encode(self, observation: Mapping[str, object], env: object) -> Hashable: ...
+    def encode(self, observation: Mapping[str, object], env: gym.Env) -> Hashable: ...
 
 
 @runtime_checkable

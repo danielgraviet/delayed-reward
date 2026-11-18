@@ -22,6 +22,8 @@ class MaskedQNetwork(QNetwork):
     """QNetwork that reads a legal-action mask from the last N obs columns."""
 
     def forward(self, obs: PyTorchObs) -> th.Tensor:
+        if not isinstance(obs, th.Tensor):
+            raise TypeError("MaskedQNetwork needs a flat tensor observation with the action mask appended")
         q_values = self.q_net(self.extract_features(obs, self.features_extractor))
         n_actions = int(self.action_space.n)
         mask = obs[..., -n_actions:]

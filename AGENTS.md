@@ -27,6 +27,15 @@ from the layers before it:
 - `cli/`: argparse to config, nothing else. Every CLI is a `[project.scripts]`
   entry point (`uv run delayed-reward-dqn-sweep ...`); there is no `scripts/`.
 
+## Checks
+
+Run `make check` before calling work done; `make fix` applies formatting and
+safe lint fixes. It runs ruff (format + lint), pyright, import-linter (the layer
+order above) and pytest in parallel. `tests/test_codebase_rules.py` enforces the
+house rules no linter covers: no `#` comments except tool pragmas (put intent in
+names and docstrings), and no new markdown outside `README.md`, `AGENTS.md`,
+`TODO.md` and `docs/`. Fix the code, not the rule.
+
 Work is tracked in Linear: project **Delayed Reward** (team DTGOS,
 https://linear.app/dtgos/project/delayed-reward-c5d43b75b48e). Before starting
 experiment work, read the project description (standing decisions) and its open

@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from minigrid.core.grid import Grid
 from minigrid.core.mission import MissionSpace
 from minigrid.core.world_object import Door, Goal, Key
 from minigrid.minigrid_env import MiniGridEnv
 
 from delayed_reward.environments.distractors import place_distractors
-from delayed_reward.environments.layout import LayoutRandomization
+from delayed_reward.environments.layout import NO_RANDOMIZATION, LayoutRandomization
 
 
 class RectangularEmptyEnv(MiniGridEnv):
@@ -22,7 +24,7 @@ class RectangularEmptyEnv(MiniGridEnv):
         agent_start_pos: tuple[int, int] | None = (1, 1),
         agent_start_dir: int = 0,
         max_steps: int | None = None,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         if width < 4 or height < 4:
             raise ValueError("width and height must both be >= 4")
@@ -44,6 +46,13 @@ class RectangularEmptyEnv(MiniGridEnv):
         return "get to the green goal square"
 
     def _gen_grid(self, width: int, height: int) -> None:
+        """Lay out walls, door, key, distractors and agent, randomizing the toggled elements.
+
+        A fixed start is placed first so random elements can't take its cell. A
+        random door column keeps every fixed element on the agent's side and leaves
+        enough free cells there for everything still to be placed. Key, start and
+        distractors go strictly left of the wall, the only legal side for them.
+        """
         self.grid = Grid(width, height)
         self.grid.wall_rect(0, 0, width, height)
         self.put_obj(Goal(), width - 2, height - 2)
@@ -96,8 +105,8 @@ class RectangularDoorKeyEnv(MiniGridEnv):
         door_pos: tuple[int, int] | None = None,
         max_steps: int | None = None,
         num_distractors: int = 0,
-        randomize: LayoutRandomization = LayoutRandomization(),
-        **kwargs: object,
+        randomize: LayoutRandomization = NO_RANDOMIZATION,
+        **kwargs: Any,
     ) -> None:
         if width < 5 or height < 4:
             raise ValueError("width must be >= 5 and height must be >= 4")
@@ -105,7 +114,8 @@ class RectangularDoorKeyEnv(MiniGridEnv):
             raise ValueError(f"num_distractors must be >= 0, got {num_distractors}")
         if max_steps is None:
             max_steps = 10 * width * height
-        self.agent_start_pos = tuple(agent_start_pos or (1, height // 2))
+        start_x, start_y = agent_start_pos or (1, height // 2)
+        self.agent_start_pos = (start_x, start_y)
         self.agent_start_dir = agent_start_dir
         self.door_pos = tuple(door_pos or (max(2, min(width - 3, (2 * width) // 3)), (height - 1) // 2))
         self.key_pos = tuple(key_pos or self._default_key_pos(height))
@@ -151,38 +161,44 @@ class RectangularDoorKeyEnv(MiniGridEnv):
         return "use the key to open the door and then get to the goal"
 
     def _gen_grid(self, width: int, height: int) -> None:
+        """Lay out walls, door, key, distractors and agent, randomizing the toggled elements.
+
+        A fixed start is placed first so random elements can't take its cell. A
+        random door column keeps every fixed element on the agent's side and leaves
+        enough free cells there for everything still to be placed. Key, start and
+        distractors go strictly left of the wall, the only legal side for them.
+        """
         self.grid = Grid(width, height)
         self.grid.wall_rect(0, 0, width, height)
         self.put_obj(Goal(), width - 2, height - 2)
         rand = self.randomize
 
-        # A fixed start is placed first so random elements can't take its cell.
         if not rand.start:
             self.agent_pos = self.agent_start_pos
             self.agent_dir = self.agent_start_dir
 
         wall_x, door_y = self.door_pos
         if rand.door:
-            # Keep every fixed element on the agent's side of the wall, and leave
-            # enough free cells there for everything that still has to be placed.
-            fixed_x = [pos[0] for pos, fixed in ((self.key_pos, not rand.key),
-                                                  (self.agent_start_pos, not rand.start)) if fixed]
+            fixed_x = [
+                pos[0] for pos, fixed in ((self.key_pos, not rand.key), (self.agent_start_pos, not rand.start)) if fixed
+            ]
             low = max([self._min_wall_x(height), *(x + 1 for x in fixed_x)])
             wall_x = self._rand_int(low, width - 2)
             door_y = self._rand_int(1, height - 1)
         self.grid.vert_wall(wall_x, 0)
         self.put_obj(Door("yellow", is_locked=True), wall_x, door_y)
 
-        # Region strictly left of the wall: the only legal side for key and start.
-        agent_side = {"top": (0, 0), "size": (wall_x, height)}
+        agent_top, agent_size = (0, 0), (wall_x, height)
         if rand.key:
-            self.place_obj(Key("yellow"), **agent_side)
+            self.place_obj(Key("yellow"), top=agent_top, size=agent_size)
         else:
             self.put_obj(Key("yellow"), *self.key_pos)
 
-        place_distractors(self, num_distractors=self.num_distractors, exclude_colors=("yellow",), **agent_side)
+        place_distractors(
+            self, num_distractors=self.num_distractors, exclude_colors=("yellow",), top=agent_top, size=agent_size
+        )
 
         if rand.start:
-            self.place_agent(**agent_side, rand_dir=True)
+            self.place_agent(top=agent_top, size=agent_size, rand_dir=True)
 
         self.mission = self._gen_mission()

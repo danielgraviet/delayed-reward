@@ -9,6 +9,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 
 _DELAY_DIR_RE = re.compile(r"^delay_(\d+)$")
 _TRIAL_DIR_RE = re.compile(r"^trial_(\d+)$")
@@ -24,9 +25,7 @@ def latest_run_dir(results_root: Path | str = "results") -> Path:
     return runs[0]
 
 
-def _iter_trial_csvs(
-    run_dir: Path, *, filename: str = "metrics.csv", required: bool = True
-) -> dict[int, list[Path]]:
+def _iter_trial_csvs(run_dir: Path, *, filename: str = "metrics.csv", required: bool = True) -> dict[int, list[Path]]:
     """Map each ``delay_*`` subdirectory to its ``<filename>`` paths.
 
     Reads ``delay_*/trial_*/<filename>``. With ``required=False``, missing
@@ -47,9 +46,7 @@ def _iter_trial_csvs(
         if paths:
             by_delay[delay] = paths
     if not by_delay and required:
-        raise FileNotFoundError(
-            f"No delay_*/trial_*/{filename} under {run_dir}"
-        )
+        raise FileNotFoundError(f"No delay_*/trial_*/{filename} under {run_dir}")
     return by_delay
 
 
@@ -74,20 +71,14 @@ def _read_table(csv_path: Path) -> tuple[np.ndarray, np.ndarray]:
 
 def load_delay_trial_metrics(run_dir: Path) -> dict[int, list[np.ndarray]]:
     """Load returns for each delay, with one array per trial."""
-    return {
-        delay: [_read_returns(p) for p in paths]
-        for delay, paths in _iter_trial_csvs(run_dir).items()
-    }
+    return {delay: [_read_returns(p) for p in paths] for delay, paths in _iter_trial_csvs(run_dir).items()}
 
 
 def load_delay_trial_tables(
     run_dir: Path,
 ) -> dict[int, list[tuple[np.ndarray, np.ndarray]]]:
     """Load ``(returns, steps)`` per trial, grouped by delay."""
-    return {
-        delay: [_read_table(p) for p in paths]
-        for delay, paths in _iter_trial_csvs(run_dir).items()
-    }
+    return {delay: [_read_table(p) for p in paths] for delay, paths in _iter_trial_csvs(run_dir).items()}
 
 
 def _read_eval_table(csv_path: Path) -> tuple[np.ndarray, np.ndarray]:
@@ -111,17 +102,13 @@ def load_delay_trial_eval_tables(
     """
     return {
         delay: [_read_eval_table(p) for p in paths]
-        for delay, paths in _iter_trial_csvs(
-            run_dir, filename="eval_metrics.csv", required=False
-        ).items()
+        for delay, paths in _iter_trial_csvs(run_dir, filename="eval_metrics.csv", required=False).items()
     }
 
 
 def load_delay_metrics(run_dir: Path) -> dict[int, np.ndarray]:
     """Load the first trial's returns series per delay."""
-    return {
-        delay: series[0] for delay, series in load_delay_trial_metrics(run_dir).items()
-    }
+    return {delay: series[0] for delay, series in load_delay_trial_metrics(run_dir).items()}
 
 
 def rolling_mean(values: np.ndarray, window: int) -> np.ndarray:
@@ -214,9 +201,7 @@ def _stack_ragged(series: list[np.ndarray]) -> np.ndarray:
     return out
 
 
-def _aggregate_trials(
-    series: list[np.ndarray], window: int
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _aggregate_trials(series: list[np.ndarray], window: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Smooth each trial, then return (mean, std, n_contributing) per episode.
 
     Shorter trials drop out of the mean/std once they end (NaN-padded), so
@@ -259,48 +244,34 @@ def plot_delay_survival(
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    for color, (delay, series) in zip(colors, sorted(metrics.items())):
+    for index, (delay, series) in enumerate(sorted(metrics.items())):
+        color = colors[index % len(colors)]
         n_trials_by_delay[delay] = len(series)
         max_episodes = max(max_episodes, *(s.size for s in series))
 
-        onsets = [
-            learning_onset_episode(s, window=smooth_window, threshold=onset_threshold)
-            for s in series
-        ]
-        sustained = [
-            sustained_onset_episode(s, window=smooth_window, threshold=onset_threshold)
-            for s in series
-        ]
+        onsets = [learning_onset_episode(s, window=smooth_window, threshold=onset_threshold) for s in series]
+        sustained = [sustained_onset_episode(s, window=smooth_window, threshold=onset_threshold) for s in series]
         onset_lists[delay] = onsets
         sustained_lists[delay] = sustained
 
         achieved = [o for o in onsets if o is not None]
         onset_means[delay] = float(np.mean(achieved)) if achieved else None
-        onset_stds[delay] = (
-            float(np.std(achieved)) if len(achieved) > 1 else (0.0 if achieved else None)
-        )
+        onset_stds[delay] = float(np.std(achieved)) if len(achieved) > 1 else (0.0 if achieved else None)
         susts = [o for o in sustained if o is not None]
         sustained_means[delay] = float(np.mean(susts)) if susts else None
-        sustained_stds[delay] = (
-            float(np.std(susts)) if len(susts) > 1 else (0.0 if susts else None)
-        )
+        sustained_stds[delay] = float(np.std(susts)) if len(susts) > 1 else (0.0 if susts else None)
 
         n_passed = sum(o is not None for o in onsets)
         n_sustained_passed = sum(o is not None for o in sustained)
         pass_counts[delay] = n_passed
         sustained_pass_counts[delay] = n_sustained_passed
 
-        label = (
-            f"Delay {delay}: {n_passed}/{len(series)} crossed, "
-            f"{n_sustained_passed}/{len(series)} sustained"
-        )
+        label = f"Delay {delay}: {n_passed}/{len(series)} crossed, {n_sustained_passed}/{len(series)} sustained"
         episodes = np.arange(max_episodes + 1)
 
         passed_at = sorted(o for o in onsets if o is not None)
         if passed_at:
-            passed_fraction = (
-                np.searchsorted(passed_at, episodes, side="right") / len(series)
-            )
+            passed_fraction = np.searchsorted(passed_at, episodes, side="right") / len(series)
             ax.step(
                 episodes,
                 passed_fraction * 100,
@@ -314,9 +285,7 @@ def plot_delay_survival(
 
         sustained_at = sorted(o for o in sustained if o is not None)
         if sustained_at:
-            sustained_fraction = (
-                np.searchsorted(sustained_at, episodes, side="right") / len(series)
-            )
+            sustained_fraction = np.searchsorted(sustained_at, episodes, side="right") / len(series)
             ax.step(
                 episodes,
                 sustained_fraction * 100,
@@ -348,31 +317,18 @@ def plot_delay_survival(
         "onset_threshold": onset_threshold,
         "smooth_window": smooth_window,
         "n_trials_by_delay": {str(d): n_trials_by_delay[d] for d in sorted(metrics)},
-        "onset_episodes_by_delay": {
-            str(d): onset_lists[d] for d in sorted(metrics)
-        },
+        "onset_episodes_by_delay": {str(d): onset_lists[d] for d in sorted(metrics)},
         "n_passed_by_delay": {str(d): pass_counts[d] for d in sorted(metrics)},
-        "pass_fraction_by_delay": {
-            str(d): pass_counts[d] / n_trials_by_delay[d] for d in sorted(metrics)
-        },
+        "pass_fraction_by_delay": {str(d): pass_counts[d] / n_trials_by_delay[d] for d in sorted(metrics)},
         "onset_mean_by_delay": {str(d): onset_means[d] for d in sorted(metrics)},
         "onset_std_by_delay": {str(d): onset_stds[d] for d in sorted(metrics)},
-        "sustained_onset_episodes_by_delay": {
-            str(d): sustained_lists[d] for d in sorted(metrics)
-        },
-        "n_sustained_passed_by_delay": {
-            str(d): sustained_pass_counts[d] for d in sorted(metrics)
-        },
+        "sustained_onset_episodes_by_delay": {str(d): sustained_lists[d] for d in sorted(metrics)},
+        "n_sustained_passed_by_delay": {str(d): sustained_pass_counts[d] for d in sorted(metrics)},
         "sustained_pass_fraction_by_delay": {
-            str(d): sustained_pass_counts[d] / n_trials_by_delay[d]
-            for d in sorted(metrics)
+            str(d): sustained_pass_counts[d] / n_trials_by_delay[d] for d in sorted(metrics)
         },
-        "sustained_onset_mean_by_delay": {
-            str(d): sustained_means[d] for d in sorted(metrics)
-        },
-        "sustained_onset_std_by_delay": {
-            str(d): sustained_stds[d] for d in sorted(metrics)
-        },
+        "sustained_onset_mean_by_delay": {str(d): sustained_means[d] for d in sorted(metrics)},
+        "sustained_onset_std_by_delay": {str(d): sustained_stds[d] for d in sorted(metrics)},
     }
     (run_dir / "delay_survival.json").write_text(json.dumps(summary, indent=2) + "\n")
 
@@ -397,7 +353,7 @@ def plot_delay_first_rewards(
 
 
 def _plot_aggregate(
-    ax: plt.Axes,
+    ax: Axes,
     mean: np.ndarray,
     std: np.ndarray,
     counts: np.ndarray,
@@ -449,12 +405,16 @@ def plot_learning_curves(
     fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    for color, (delay, series) in zip(colors, sorted(metrics.items())):
+    for index, (delay, series) in enumerate(sorted(metrics.items())):
+        color = colors[index % len(colors)]
         mean, std, counts = _aggregate_trials(series, smooth_window)
         _plot_aggregate(ax, mean, std, counts, len(series), color=color, label=f"Delay {delay} (n={len(series)})")
 
     ax.axhline(
-        onset_threshold, color="gray", linestyle=":", linewidth=1.2,
+        onset_threshold,
+        color="gray",
+        linestyle=":",
+        linewidth=1.2,
         label=f"onset threshold ({onset_threshold})",
     )
     ax.set_title(f"Smoothed return over training (window={smooth_window})\n{run_dir.name}")
@@ -488,7 +448,8 @@ def plot_episode_length(
     fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    for color, (delay, trials) in zip(colors, sorted(tables.items())):
+    for index, (delay, trials) in enumerate(sorted(tables.items())):
+        color = colors[index % len(colors)]
         steps_series = [steps for _returns, steps in trials]
         mean, std, counts = _aggregate_trials(steps_series, smooth_window)
         _plot_aggregate(ax, mean, std, counts, len(trials), color=color, label=f"Delay {delay} (n={len(trials)})")
@@ -534,7 +495,8 @@ def plot_eval_curve(
     fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    for color, (delay, trials) in zip(colors, sorted(eval_tables.items())):
+    for index, (delay, trials) in enumerate(sorted(eval_tables.items())):
+        color = colors[index % len(colors)]
         returns_series = [r for _episodes, r in trials]
         stacked = _stack_ragged(returns_series)
         counts = np.sum(~np.isnan(stacked), axis=0)
@@ -545,11 +507,19 @@ def plot_eval_curve(
         longest_episodes = max(trials, key=lambda t: t[0].size)[0]
         x = longest_episodes[: mean.size]
         _plot_aggregate(
-            ax, mean, std, counts, len(trials), color=color,
-            label=f"Delay {delay} (n={len(trials)})", x=x,
+            ax,
+            mean,
+            std,
+            counts,
+            len(trials),
+            color=color,
+            label=f"Delay {delay} (n={len(trials)})",
+            x=x,
         )
 
-    ax.axhline(onset_threshold, color="gray", linestyle=":", linewidth=1.2, label=f"onset threshold ({onset_threshold})")
+    ax.axhline(
+        onset_threshold, color="gray", linestyle=":", linewidth=1.2, label=f"onset threshold ({onset_threshold})"
+    )
     ax.set_title(f"Exploration-off evaluation return over training\n{run_dir.name}")
     ax.set_xlabel("Training episode")
     ax.set_ylabel("Evaluation return (greedy policy, no exploration)")
@@ -581,9 +551,7 @@ def plot_condition_comparison(
     just one) are pooled under that condition's label.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig, (ax_return, ax_steps, ax_final) = plt.subplots(
-        3, 1, figsize=(12, 16), constrained_layout=True
-    )
+    fig, (ax_return, ax_steps, ax_final) = plt.subplots(3, 1, figsize=(12, 16), constrained_layout=True)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
     summary: dict[str, dict] = {}
@@ -591,7 +559,8 @@ def plot_condition_comparison(
     final_means: list[float] = []
     final_stds: list[float] = []
 
-    for color, (name, run_dir) in zip(colors, conditions.items()):
+    for index, (name, run_dir) in enumerate(conditions.items()):
+        color = colors[index % len(colors)]
         tables = load_delay_trial_tables(run_dir)
         trials = [pair for pairs in tables.values() for pair in pairs]
         returns_series = [r for r, _s in trials]
@@ -604,15 +573,16 @@ def plot_condition_comparison(
         _plot_aggregate(ax_steps, mean_s, std_s, counts_s, len(trials), color=color, label=f"{name} (n={len(trials)})")
 
         final_window_means = [
-            float(r[-smooth_window:].mean()) if r.size >= smooth_window else float(r.mean())
-            for r in returns_series
+            float(r[-smooth_window:].mean()) if r.size >= smooth_window else float(r.mean()) for r in returns_series
         ]
         final_labels.append(name)
         final_means.append(float(np.mean(final_window_means)))
         final_stds.append(float(np.std(final_window_means)) if len(final_window_means) > 1 else 0.0)
 
         onsets = [learning_onset_episode(r, window=smooth_window, threshold=onset_threshold) for r in returns_series]
-        sustained = [sustained_onset_episode(r, window=smooth_window, threshold=onset_threshold) for r in returns_series]
+        sustained = [
+            sustained_onset_episode(r, window=smooth_window, threshold=onset_threshold) for r in returns_series
+        ]
         summary[name] = {
             "run_dir": str(run_dir),
             "n_trials": len(trials),
@@ -642,7 +612,8 @@ def plot_condition_comparison(
     x = np.arange(len(final_labels))
     bar_colors = colors[: len(final_labels)]
     ax_final.bar(x, final_means, yerr=final_stds, capsize=6, color=bar_colors, alpha=0.85)
-    for xi, means_for_cond in zip(x, (summary[name]["final_window_mean_return_per_trial"] for name in final_labels)):
+    per_condition = [summary[name]["final_window_mean_return_per_trial"] for name in final_labels]
+    for xi, means_for_cond in zip(x, per_condition, strict=True):
         jitter = (np.random.default_rng(0).random(len(means_for_cond)) - 0.5) * 0.15
         ax_final.scatter(np.full(len(means_for_cond), xi) + jitter, means_for_cond, color="black", zorder=3, s=20)
     ax_final.axhline(onset_threshold, color="gray", linestyle=":", linewidth=1.2)

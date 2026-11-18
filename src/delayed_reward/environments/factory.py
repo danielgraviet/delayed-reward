@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import gymnasium as gym
 from minigrid.wrappers import FullyObsWrapper, ReseedWrapper
 
@@ -10,7 +12,7 @@ from delayed_reward.environments.adapter import MinigridAdapter
 from delayed_reward.environments.binary_reward import BinarySuccessRewardWrapper
 from delayed_reward.environments.delayed_reward import DelayedRewardWrapper
 from delayed_reward.environments.keydoor_actions import KeyDoorActionWrapper
-from delayed_reward.environments.layout import LayoutRandomization, SeedOnceWrapper
+from delayed_reward.environments.layout import NO_RANDOMIZATION, LayoutRandomization, SeedOnceWrapper
 from delayed_reward.environments.nav_actions import NavActionWrapper
 from delayed_reward.environments.observation import DQNObservationWrapper
 from delayed_reward.environments.pose_encoder import PoseEncoder
@@ -27,7 +29,7 @@ from delayed_reward.environments.subgoal_delayed_reward import (
 )
 
 
-def _make(env_id: str, *, render_mode: str | None, max_steps: int | None, **kwargs: object) -> gym.Env:
+def _make(env_id: str, *, render_mode: str | None, max_steps: int | None, **kwargs: Any) -> gym.Env:
     if max_steps is not None:
         if max_steps < 1:
             raise ValueError(f"max_steps must be >= 1, got {max_steps}")
@@ -35,9 +37,7 @@ def _make(env_id: str, *, render_mode: str | None, max_steps: int | None, **kwar
     return gym.make(env_id, render_mode=render_mode, **kwargs)
 
 
-def _empty_env(
-    *, env_id: str, seed: int, delay: int, render_mode: str | None, max_steps: int | None
-) -> gym.Env:
+def _empty_env(*, env_id: str, seed: int, delay: int, render_mode: str | None, max_steps: int | None) -> gym.Env:
     """Fully observed Empty MiniGrid with the delayed binary goal reward, reseeded every episode."""
     env = _make(env_id, render_mode=render_mode, max_steps=max_steps)
     env = NavActionWrapper(env)
@@ -94,7 +94,7 @@ def create_keydoor_dqn_env(
     max_steps: int | None = None,
     num_distractors: int = 0,
     step_penalty: float = 0.0,
-    randomize: LayoutRandomization = LayoutRandomization(),
+    randomize: LayoutRandomization = NO_RANDOMIZATION,
 ) -> gym.Env:
     """Create a key-door MiniGrid with a flat numeric DQN observation.
 
@@ -119,7 +119,7 @@ def create_keydoor_dqn_env(
     (see ``supports_layout_randomization``); ``KEYDOOR_DISTRACTOR_ENV_ID`` is
     the 8x8 one.
     """
-    kwargs: dict[str, object] = {}
+    kwargs: dict[str, Any] = {}
     if num_distractors:
         kwargs["num_distractors"] = num_distractors
     if randomize.any:
@@ -136,9 +136,7 @@ def create_keydoor_dqn_env(
     env = SubgoalDelayedRewardWrapper(env, delay=delay, subgoal_reward=subgoal_reward)
     if step_penalty:
         env = StepPenaltyWrapper(env, penalty=step_penalty)
-    # A fixed layout reseeds every reset; per-episode randomization needs the RNG to advance.
     env = SeedOnceWrapper(env, seed) if randomize.any else ReseedWrapper(env, seeds=(seed,))
     env = DQNObservationWrapper(env)
     env = ActionMaskObservationWrapper(env)
     return env
-

@@ -10,7 +10,7 @@ from minigrid.core.actions import Actions
 class KeyDoorActionWrapper(gym.ActionWrapper):
     """Map Discrete(5) onto turn-left, turn-right, forward, pickup, and toggle."""
 
-    _ACTIONS = (
+    ACTIONS = (
         Actions.left,
         Actions.right,
         Actions.forward,
@@ -20,7 +20,7 @@ class KeyDoorActionWrapper(gym.ActionWrapper):
 
     def __init__(self, env: gym.Env) -> None:
         super().__init__(env)
-        self.action_space = spaces.Discrete(len(self._ACTIONS))
+        self.action_space = spaces.Discrete(len(self.ACTIONS))
 
     def action(self, action: int) -> int:
-        return int(self._ACTIONS[action])
+        return int(self.ACTIONS[action])

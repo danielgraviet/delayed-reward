@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Hashable, Mapping
 
+import gymnasium as gym
+
+from delayed_reward.environments.unwrap import minigrid_env
+
 
 class PoseEncoder:
     """Encode agent pose as (x, y, direction); ignore step count and grid pixels."""
 
-    def encode(self, observation: Mapping[str, object], env: object) -> Hashable:
-        del observation  # pose comes from the unwrapped env under full observability
-        unwrapped = env.unwrapped  # type: ignore[attr-defined]
-        pos = unwrapped.agent_pos
-        x, y = int(pos[0]), int(pos[1])
-        direction = int(unwrapped.agent_dir)
-        return (x, y, direction)
+    def encode(self, observation: Mapping[str, object], env: gym.Env) -> Hashable:
+        """Read the pose from the env itself; under full observability it determines the state."""
+        del observation
+        core = minigrid_env(env)
+        x, y = int(core.agent_pos[0]), int(core.agent_pos[1])
+        return (x, y, int(core.agent_dir))
