@@ -1,0 +1,88 @@
+{
+  "0": {
+    "trials": {
+      "0": {
+        "first_optimal_timestep": 357403,
+        "sustained_optimal_timestep": 410625,
+        "censored": false,
+        "censor_timestep": null
+      },
+      "1": {
+        "first_optimal_timestep": 414630,
+        "sustained_optimal_timestep": 432799,
+        "censored": false,
+        "censor_timestep": null
+      },
+      "2": {
+        "first_optimal_timestep": 233056,
+        "sustained_optimal_timestep": 233383,
+        "censored": false,
+        "censor_timestep": null
+      },
+      "3": {
+        "first_optimal_timestep": null,
+        "sustained_optimal_timestep": null,
+        "censored": true,
+        "censor_timestep": 2000000
+      },
+      "4": {
+        "first_optimal_timestep": null,
+        "sustained_optimal_timestep": null,
+        "censored": true,
+        "censor_timestep": 2000000
+      },
+      "5": {
+        "first_optimal_timestep": 285101,
+        "sustained_optimal_timestep": 306704,
+        "censored": false,
+        "censor_timestep": null
+      },
+      "6": {
+        "first_optimal_timestep": 351256,
+        "sustained_optimal_timestep": 365941,
+        "censored": false,
+        "censor_timestep": null
+      },
+      "7": {
+        "first_optimal_timestep": 541766,
+        "sustained_optimal_timestep": null,
+        "censored": true,
+        "censor_timestep": 2000000
+      },
+      "8": {
+        "first_optimal_timestep": 210315,
+        "sustained_optimal_timestep": 215182,
+        "censored": false,
+        "censor_timestep": null
+      },
+      "9": {
+        "first_optimal_timestep": null,
+        "sustained_optimal_timestep": null,
+        "censored": true,
+        "censor_timestep": 2000000
+      }
+    },
+    "n_trials": 10,
+    "n_sustained": 6,
+    "n_censored": 4,
+    "n_first_optimal": 7,
+    "median_sustained_timestep": 410625,
+    "sustained_timesteps_solved": [
+      215182,
+      233383,
+      306704,
+      365941,
+      410625,
+      432799
+    ],
+    "first_optimal_timesteps": [
+      210315,
+      233056,
+      285101,
+      351256,
+      357403,
+      414630,
+      541766
+    ]
+  }
+}

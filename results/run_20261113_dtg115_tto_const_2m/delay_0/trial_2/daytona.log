@@ -1,0 +1,46 @@
+RUN_DIR /root/results/run_20261113_dtg115_tto_const_2m
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 WORKERS 1 RANDOMIZE none PENDING 1 SKIPPED 0
+wandb: [wandb.login()] Loaded credentials for https://api.forge.coreweave.com from WANDB_API_KEY.
+wandb: Currently logged in as: dtgrav (dtgrav-byu) to https://api.forge.coreweave.com. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.31.0
+wandb: Run data is saved locally in /root/repo/wandb/run-20261113_183308-ij3w04o3
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run delay-0-trial-2
+wandb: ⭐️ View project at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: 🚀 View run at https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/ij3w04o3
+/usr/local/lib/python3.13/site-packages/minigrid/wrappers.py:60: UserWarning: [33mWARN: A seed has been passed to `ReseedWrapper.reset` which is ignored.[0m
+  logger.warn(
+trial=2 episodes=750 last_100_mean_return=1.172 device=cpu sustained_optimal_timestep=233383 path=/root/results/run_20261113_dtg115_tto_const_2m/delay_0/trial_2
+wandb: updating run metadata
+wandb: uploading history steps 962-979, summary, console lines 2-2
+wandb: 
+wandb: Run history:
+wandb:            episode/count ▁▁▁▁▁▂▂▂▂▃▃▃▄▄▄▄▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▆▆▇▇█████
+wandb:           episode/return ▂▂▂▂▂▇████▆▅▆▇▇▁████████████████████████
+wandb:            episode/steps ██████▃▃▂▄▄▁▁▂▂▂▇▄▆▁▁▂▂▁▁▁▁▁▁▁▁▂▁▁▂▁▆▁▁▁
+wandb: rollout_exploration_rate █████▇▇▇▇▇▇▇▆▆▆▅▅▅▅▅▄▄▄▄▄▃▃▃▂▂▂▂▂▂▂▁▁▁▁▁
+wandb:                timesteps ▁▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▅▅▅▆▆▆▆▆▆▆▇▇▇▇▇▇▇▇██
+wandb:      train_learning_rate ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               train_loss █▇▅▇▇█▅▅▆▇▅▅▇▆▄▆▆▆▄▅▅▅▇▄▃▆▄▄▄▅▃▃▄▂▃▃▃▁▂▁
+wandb:          train_n_updates ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▄▄▄▄▅▅▅▅▆▆▆▆▇▇▇▇▇██
+wandb: 
+wandb: Run summary:
+wandb:                               episode/count 750
+wandb:                              episode/return 1.272
+wandb:                               episode/steps 28
+wandb:                    rollout_exploration_rate 0.05
+wandb:                    time_to_optimal/censored False
+wandb:      time_to_optimal/first_optimal_timestep 233056
+wandb: time_to_optimal/first_optimal_train_episode 740
+wandb:               time_to_optimal/optimal_steps 25
+wandb:               time_to_optimal/stopped_early True
+wandb:               time_to_optimal/sustain_evals 3
+wandb:                                          +7 ...
+wandb: 
+wandb: 🚀 View run delay-0-trial-2 at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward/runs/ij3w04o3
+wandb: ⭐️ View project at: https://forge.coreweave.com/wandb/dtgrav-byu/delayed-reward
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261113_183308-ij3w04o3/logs
+DONE delay=0 trial=2 /root/results/run_20261113_dtg115_tto_const_2m/delay_0/trial_2
+TIME_TO_OPTIMAL delay=0 sustained=1/1 censored=0 median=233383
+All DQN trials finished under /root/results/run_20261113_dtg115_tto_const_2m

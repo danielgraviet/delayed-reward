@@ -1,0 +1,26 @@
+RUN_DIR /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261113_dtg115_tto_const_2m
+ENV MiniGrid-DoorKey-Hallway-20x6-v0 DELAYS [0] TRIALS 10 SANDBOXES 10x2vCPU PENDING 10 SKIPPED 0
+Snapshot delayed-reward-cpu-2c4g-357557123c already exists (state=snapshotstate.active)
+STARTED delay=0 trial=8 sandbox=a27bc45e-4c7e-454f-bcb4-b0ee3649d323
+STARTED delay=0 trial=4 sandbox=c15e915b-1d2a-4169-8354-e76ec4be0372
+STARTED delay=0 trial=3 sandbox=6b70bed0-61a7-4212-9675-c95c00a7dd9f
+STARTED delay=0 trial=0 sandbox=ff5f914f-adaa-49b4-9443-c84214e82492
+STARTED delay=0 trial=1 sandbox=357132ec-02ba-4960-bfc0-23e25e76d1b6
+STARTED delay=0 trial=2 sandbox=8b54a072-f271-4e3e-8b12-5e218fe799a8
+STARTED delay=0 trial=5 sandbox=eba462f9-445d-4852-8582-8f79b919f9b8
+STARTED delay=0 trial=9 sandbox=50bd8b12-f1a7-4077-93d6-357363181e1d
+STARTED delay=0 trial=7 sandbox=6af18d0e-9116-45c6-a695-0eeee89a8b10
+STARTED delay=0 trial=6 sandbox=1984beae-7ad2-4f6a-b977-a67e819259f4
+DONE delay=0 trial=8 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_8 (25.1 min)
+DONE delay=0 trial=2 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_2 (25.0 min)
+DONE delay=0 trial=5 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_5 (41.1 min)
+DONE delay=0 trial=6 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_6 (43.1 min)
+DONE delay=0 trial=0 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_0 (52.1 min)
+DONE delay=0 trial=1 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_1 (56.2 min)
+DONE delay=0 trial=7 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_7 (286.6 min)
+DONE delay=0 trial=9 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_9 (339.7 min)
+DONE delay=0 trial=4 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_4 (340.7 min)
+DONE delay=0 trial=3 results/run_20261113_dtg115_tto_const_2m/delay_0/trial_3 (341.8 min)
+PLOT /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261113_dtg115_tto_const_2m/delay_survival.png
+TIME_TO_OPTIMAL delay=0 sustained=6/10 censored=4 median=410625
+All DQN trials finished under /Users/danielgraviet/Desktop/projects/delayed-reward/results/run_20261113_dtg115_tto_const_2m
