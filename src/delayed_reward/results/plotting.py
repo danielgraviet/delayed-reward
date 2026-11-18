@@ -29,11 +29,9 @@ def _iter_trial_csvs(
 ) -> dict[int, list[Path]]:
     """Map each ``delay_*`` subdirectory to its ``<filename>`` paths.
 
-    Supports ``delay_*/trial_*/<filename>`` (multi-trial) and
-    ``delay_*/<filename>`` (legacy single-trial). With ``required=False``,
-    missing files are silently skipped instead of raising -- useful for
-    optional per-trial outputs like ``eval_metrics.csv`` that older runs
-    won't have.
+    Reads ``delay_*/trial_*/<filename>``. With ``required=False``, missing
+    files are skipped instead of raising, for optional per-trial outputs like
+    ``eval_metrics.csv`` (written only when periodic evals are on).
     """
     by_delay: dict[int, list[Path]] = {}
     for child in sorted(run_dir.iterdir()):
@@ -45,18 +43,12 @@ def _iter_trial_csvs(
             (p for p in child.iterdir() if p.is_dir() and _TRIAL_DIR_RE.match(p.name)),
             key=lambda p: int(_TRIAL_DIR_RE.match(p.name).group(1)),  # type: ignore[union-attr]
         )
-        if trial_dirs:
-            paths = [
-                p / filename for p in trial_dirs if (p / filename).exists()
-            ]
-        else:
-            csv_path = child / filename
-            paths = [csv_path] if csv_path.exists() else []
+        paths = [p / filename for p in trial_dirs if (p / filename).exists()]
         if paths:
             by_delay[delay] = paths
     if not by_delay and required:
         raise FileNotFoundError(
-            f"No delay_*/{filename} or delay_*/trial_*/{filename} under {run_dir}"
+            f"No delay_*/trial_*/{filename} under {run_dir}"
         )
     return by_delay
 
@@ -126,7 +118,7 @@ def load_delay_trial_eval_tables(
 
 
 def load_delay_metrics(run_dir: Path) -> dict[int, np.ndarray]:
-    """Load a single returns series per delay (first trial / legacy layout)."""
+    """Load the first trial's returns series per delay."""
     return {
         delay: series[0] for delay, series in load_delay_trial_metrics(run_dir).items()
     }

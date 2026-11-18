@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from delayed_reward.dqn_experiment import lr_config, make_lr_schedule
+from delayed_reward.config import DQNParams, LRSchedule
+from delayed_reward.dqn_experiment import dqn_config_from_args, make_lr_schedule
 from delayed_reward.environments.factory import HALLWAY_KEYDOOR_ENV_ID
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -28,15 +29,15 @@ def _write_summary(tmp_path: Path, config: dict) -> None:
 
 
 def _plan(args, tmp_path):
-    return parallel_dqn_sweep.plan_tasks(args, HALLWAY_KEYDOOR_ENV_ID, tmp_path, [0], [0])
+    return parallel_dqn_sweep.plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
 
 
 def test_constant_schedule_is_a_plain_float():
-    assert make_lr_schedule(1e-3, "constant", 0.0) == 1e-3
+    assert make_lr_schedule(DQNParams(learning_rate=1e-3)) == 1e-3
 
 
 def test_linear_schedule_decays_from_initial_to_final():
-    schedule = make_lr_schedule(1e-3, "linear", 1e-5)
+    schedule = make_lr_schedule(DQNParams(learning_rate=1e-3, lr_schedule=LRSchedule.LINEAR, lr_final=1e-5))
     # SB3 passes progress_remaining: 1.0 at the start, 0.0 at the end.
     assert schedule(1.0) == pytest.approx(1e-3)
     assert schedule(0.5) == pytest.approx((1e-3 + 1e-5) / 2)
@@ -46,12 +47,14 @@ def test_linear_schedule_decays_from_initial_to_final():
 @pytest.mark.parametrize("lr, schedule, final", [(0.0, "constant", 0.0), (1e-3, "linear", 2e-3), (1e-3, "cosine", 0.0)])
 def test_invalid_schedules_are_rejected(lr, schedule, final):
     with pytest.raises(ValueError):
-        make_lr_schedule(lr, schedule, final)
+        DQNParams(learning_rate=lr, lr_schedule=schedule, lr_final=final)
 
 
-def test_lr_final_is_only_recorded_for_linear():
-    assert lr_config(1e-3, "constant", 1e-5)["lr_final"] is None
-    assert lr_config(1e-3, "linear", 1e-5)["lr_final"] == 1e-5
+def test_lr_final_is_only_recorded_for_linear(tmp_path):
+    constant = dqn_config_from_args(_args(tmp_path, "--lr-final", "1e-5"))
+    linear = dqn_config_from_args(_args(tmp_path, "--lr-schedule", "linear", "--lr-final", "1e-5"))
+    assert constant.to_dict()["lr_final"] is None
+    assert linear.to_dict()["lr_final"] == 1e-5
 
 
 def test_sweep_rejects_bad_lr_final(tmp_path):
@@ -59,13 +62,17 @@ def test_sweep_rejects_bad_lr_final(tmp_path):
         parallel_dqn_sweep.resolve_sweep(_args(tmp_path, "--lr-schedule", "linear", "--lr-final", "1"))
 
 
-def test_resume_accepts_summaries_written_before_the_lr_and_eval_keys(tmp_path):
-    args = _args(tmp_path)
-    config = parallel_dqn_sweep._expected_config(args, HALLWAY_KEYDOOR_ENV_ID, 0, 0)
-    for key in ("lr_schedule", "lr_final", "eval_every_episodes"):
-        config.pop(key)
+def test_resume_skips_matching_summary(tmp_path):
+    _write_summary(tmp_path, dqn_config_from_args(_args(tmp_path)).to_dict())
+    assert _plan(_args(tmp_path), tmp_path) == ([], 1)
+
+
+def test_resume_refuses_summary_missing_a_setting(tmp_path):
+    config = dqn_config_from_args(_args(tmp_path)).to_dict()
+    config.pop("lr_schedule")
     _write_summary(tmp_path, config)
-    assert _plan(args, tmp_path) == ([], 1)
+    with pytest.raises(SystemExit, match="lr_schedule"):
+        _plan(_args(tmp_path), tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -74,9 +81,10 @@ def test_resume_accepts_summaries_written_before_the_lr_and_eval_keys(tmp_path):
         (["--lr-schedule", "linear"], "lr_schedule"),
         (["--learning-rate", "5e-4"], "learning_rate"),
         (["--eval-every-episodes", "5"], "eval_every_episodes"),
+        (["--double-dqn"], "double_dqn"),
     ],
 )
 def test_resume_refuses_changed_training_settings(tmp_path, changed, key):
-    _write_summary(tmp_path, parallel_dqn_sweep._expected_config(_args(tmp_path), HALLWAY_KEYDOOR_ENV_ID, 0, 0))
+    _write_summary(tmp_path, dqn_config_from_args(_args(tmp_path)).to_dict())
     with pytest.raises(SystemExit, match=key):
         _plan(_args(tmp_path, *changed), tmp_path)

@@ -44,8 +44,7 @@ if RECTANGULAR_ENV_ID not in registry:
 
 _RECTANGULAR_DOORKEY_ENTRY_POINT = "delayed_reward.environments.rectangular:RectangularDoorKeyEnv"
 
-# Fixed (canonical) layouts. They match what seed 0 produced before layouts
-# were made seed-independent, so trial 0 of older runs saw the same room.
+# Fixed (canonical) layouts, identical for every seed.
 if HALLWAY_KEYDOOR_ENV_ID not in registry:
     register(
         id=HALLWAY_KEYDOOR_ENV_ID,

@@ -32,7 +32,7 @@ uv run python scripts/parallel_sweep.py \
 Example parallel DQN sweep:
 
 ```sh
-uv run python scripts/dqn_parallel_sweep.py \
+uv run python scripts/parallel_dqn_sweep.py \
   --env-kind keydoor --delay 0 2 5 10 --trials 10 --workers 4 --wandb \
   --wandb-project delayed-reward
 ```

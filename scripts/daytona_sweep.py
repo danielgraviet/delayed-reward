@@ -332,12 +332,13 @@ def main() -> None:
             f"remote args: {' '.join(_strip_overridden(sweep_argv))}"
         )
         return
-    delays, trial_ids, env_id, run_dir = parallel_dqn_sweep.resolve_sweep(sweep_args)
-    pending, skipped = parallel_dqn_sweep.plan_tasks(sweep_args, env_id, run_dir, delays, trial_ids)
+    template, delays, trial_ids, run_dir = parallel_dqn_sweep.resolve_sweep(sweep_args)
+    pending_configs, skipped = parallel_dqn_sweep.plan_tasks(template, run_dir, delays, trial_ids)
+    pending = [(config.env.delay, config.trial) for config in pending_configs]
 
     print(f"RUN_DIR {run_dir.resolve()}", flush=True)
     print(
-        f"ENV {env_id} DELAYS {delays} TRIALS {sweep_args.trials} "
+        f"ENV {template.env.env_id} DELAYS {delays} TRIALS {sweep_args.trials} "
         f"SANDBOXES {min(dargs.max_sandboxes, len(pending))}x{dargs.cpu}vCPU "
         f"PENDING {len(pending)} SKIPPED {skipped}",
         flush=True,

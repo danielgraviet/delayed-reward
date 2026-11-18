@@ -61,9 +61,6 @@ wall clock. W&B works from `~/.netrc`, with no extra setup.
   Secret would be safer if the key format check allows it.
 - Only the DQN launcher has a Daytona path. Tabular `parallel_sweep.py` trials are
   short and probably don't need one.
-- The README's DQN example uses the older `scripts/dqn_parallel_sweep.py`.
-  `parallel_dqn_sweep.py` is the newer one (step penalty, checkpoint window,
-  evals) and the one used for the latest runs. Consider removing the older script.
 
 ## One-time setup
 

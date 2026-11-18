@@ -1,4 +1,4 @@
-"""Time-to-optimal criterion, early stop, schedule horizon, and their resume checks."""
+"""Time-to-optimal criterion, early stop, schedule horizon, and their CLI checks."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from delayed_reward.config import DQNParams, DQNTrialConfig, EnvKind, EnvSpec, EvalSpec, LRSchedule
 from delayed_reward.dqn_experiment import GreedyEvalCallback, make_lr_schedule, train_trial
 from delayed_reward.environments.factory import HALLWAY_KEYDOOR_ENV_ID
 
@@ -19,7 +20,7 @@ BASE = ["--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID]
 
 
 def _callback(**kwargs) -> GreedyEvalCallback:
-    return GreedyEvalCallback(eval_env=None, eval_every_episodes=1, max_steps=50, **kwargs)
+    return GreedyEvalCallback(eval_env=None, spec=EvalSpec(every_episodes=1, **kwargs), max_steps=50)
 
 
 def _feed(callback: GreedyEvalCallback, flags: list[bool]) -> None:
@@ -56,22 +57,27 @@ def test_no_criterion_means_no_summary():
 
 
 def test_linear_lr_reaches_final_at_end_fraction_then_holds():
-    schedule = make_lr_schedule(1e-3, "linear", 1e-4, end_fraction=0.25)
+    params = DQNParams(learning_rate=1e-3, lr_schedule=LRSchedule.LINEAR, lr_final=1e-4)
+    schedule = make_lr_schedule(params, end_fraction=0.25)
     assert schedule(1.0) == pytest.approx(1e-3)
     assert schedule(0.875) == pytest.approx((1e-3 + 1e-4) / 2)
     assert schedule(0.75) == pytest.approx(1e-4)
     assert schedule(0.0) == pytest.approx(1e-4)
 
 
-def _short_trial(tmp_path: Path, monkeypatch, run_eval, **kwargs) -> Path:
+def _short_trial(
+    tmp_path: Path, monkeypatch, run_eval, *, total_timesteps: int, schedule_timesteps: int = 0, **eval_kwargs
+) -> Path:
     monkeypatch.setattr(GreedyEvalCallback, "_run_eval", run_eval)
     trial_dir = tmp_path / "trial_0"
     trial_dir.mkdir()
-    train_trial(
-        trial=0, env_id=HALLWAY_KEYDOOR_ENV_ID, seed=0, delay=0, max_steps=50,
-        trial_dir=trial_dir, env_kind="keydoor", step_penalty=0.001, eval_every_episodes=1,
-        **kwargs,
+    config = DQNTrialConfig(
+        env=EnvSpec(kind=EnvKind.KEYDOOR, env_id=HALLWAY_KEYDOOR_ENV_ID, max_steps=50, step_penalty=0.001),
+        total_timesteps=total_timesteps,
+        schedule_timesteps=schedule_timesteps,
+        eval=EvalSpec(every_episodes=1, **eval_kwargs),
     )
+    train_trial(config, trial_dir)
     return trial_dir
 
 
@@ -117,42 +123,12 @@ def _args(tmp_path: Path, *extra: str):
     )
 
 
-def _write_summary(tmp_path: Path, config: dict) -> None:
-    trial_dir = tmp_path / "delay_0" / "trial_0"
-    trial_dir.mkdir(parents=True)
-    (trial_dir / "summary.json").write_text(json.dumps({"config": config}))
-
-
-def _legacy_config() -> dict:
-    return {
-        "algorithm": "stable-baselines3-dqn", "env": HALLWAY_KEYDOOR_ENV_ID, "env_kind": "keydoor",
-        "delay": 0, "subgoal_reward": 0.3, "reward_attribution": "arrival", "step_penalty": 0.0,
-        "checkpoint_window": 100, "trial": 0, "seed": 0, "total_timesteps": 500_000,
-        "max_steps": None, "layout_randomization": [], "fixed_layout": "canonical", "learning_rate": 1e-3,
-        "eval_episodes": 1,
-    }
-
-
-def test_legacy_summary_resumes_without_criterion(tmp_path):
-    _write_summary(tmp_path, _legacy_config())
-    args = _args(tmp_path)
-    pending, skipped = parallel_dqn_sweep.plan_tasks(args, HALLWAY_KEYDOOR_ENV_ID, tmp_path, [0], [0])
-    assert (pending, skipped) == ([], 1)
-
-
-def test_legacy_summary_refuses_new_criterion(tmp_path):
-    _write_summary(tmp_path, _legacy_config())
-    args = _args(tmp_path, "--optimal-steps", "25", "--stop-on-sustained")
-    with pytest.raises(SystemExit, match="refusing to mix"):
-        parallel_dqn_sweep.plan_tasks(args, HALLWAY_KEYDOOR_ENV_ID, tmp_path, [0], [0])
-
-
 @pytest.mark.parametrize(
     "extra, message",
     [
-        (["--stop-on-sustained"], "requires --optimal-steps"),
-        (["--schedule-timesteps", "600000"], "schedule-timesteps"),
-        (["--optimal-steps", "25", "--eval-every-episodes", "0"], "eval-every-episodes"),
+        (["--stop-on-sustained"], "stop_on_sustained requires optimal_steps"),
+        (["--schedule-timesteps", "600000"], "schedule_timesteps must be in"),
+        (["--optimal-steps", "25", "--eval-every-episodes", "0"], "optimal_steps needs periodic evals"),
     ],
 )
 def test_sweep_rejects_bad_criterion_args(tmp_path, extra, message):

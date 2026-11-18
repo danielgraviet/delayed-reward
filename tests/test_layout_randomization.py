@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 from minigrid.core.world_object import Door, Floor, Key
 
+from delayed_reward.dqn_experiment import dqn_config_from_args
 from delayed_reward.environments.factory import (
     HALLWAY_KEYDOOR_ENV_ID,
     KEYDOOR_DISTRACTOR_ENV_ID,
@@ -144,42 +145,14 @@ def _sweep_args(tmp_path: Path, *extra: str) -> argparse.Namespace:
     )
 
 
-def _write_legacy_summary(tmp_path: Path, args: argparse.Namespace, env_id: str) -> None:
-    """A summary as written before layout randomization existed."""
-    config = parallel_dqn_sweep._expected_config(args, env_id, 0, 0)
-    config.pop("layout_randomization")
-    config.pop("fixed_layout")
-    trial_dir = tmp_path / "delay_0" / "trial_0"
-    trial_dir.mkdir(parents=True)
-    (trial_dir / "summary.json").write_text(json.dumps({"config": config}))
-
-
 def _plan(args, env_id, tmp_path):
-    return parallel_dqn_sweep.plan_tasks(args, env_id, tmp_path, [0], [0])
-
-
-@pytest.mark.parametrize(
-    "extra, env_id",
-    [([], "MiniGrid-Empty-10x10-v0"), (["--env-kind", "keydoor"], KEYDOOR_ENV_ID)],
-    ids=["empty", "builtin-keydoor"],
-)
-def test_resume_accepts_legacy_runs_whose_layouts_are_unchanged(tmp_path, extra, env_id):
-    args = _sweep_args(tmp_path, *extra)
-    _write_legacy_summary(tmp_path, args, env_id)
-    assert _plan(args, env_id, tmp_path) == ([], 1)
-
-
-def test_resume_refuses_legacy_hallway_runs_with_seeded_layouts(tmp_path):
-    args = _sweep_args(tmp_path, "--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID)
-    _write_legacy_summary(tmp_path, args, HALLWAY_KEYDOOR_ENV_ID)
-    with pytest.raises(SystemExit, match="fixed_layout"):
-        _plan(args, HALLWAY_KEYDOOR_ENV_ID, tmp_path)
+    return parallel_dqn_sweep.plan_tasks(dqn_config_from_args(args), tmp_path, [0], [0])
 
 
 def test_resume_refuses_changed_randomization(tmp_path):
     base = ["--env-kind", "keydoor", "--env-id", HALLWAY_KEYDOOR_ENV_ID]
     args = _sweep_args(tmp_path, *base)
-    config = parallel_dqn_sweep._expected_config(args, HALLWAY_KEYDOOR_ENV_ID, 0, 0)
+    config = dqn_config_from_args(args).to_dict()
     trial_dir = tmp_path / "delay_0" / "trial_0"
     trial_dir.mkdir(parents=True)
     (trial_dir / "summary.json").write_text(json.dumps({"config": config}))

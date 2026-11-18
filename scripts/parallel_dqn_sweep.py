@@ -10,28 +10,19 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from pathlib import Path
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from delayed_reward.config import DQNTrialConfig, WandbSettings, config_mismatches
 from delayed_reward.dqn_experiment import (
-    add_layout_args,
-    add_lr_args,
-    add_time_to_optimal_args,
-    layout_from_args,
-    lr_config,
-    lr_from_args,
-    time_to_optimal_from_args,
+    add_dqn_args,
+    dqn_config_from_args,
     train_trial,
-)
-from delayed_reward.environments.factory import (
-    DEFAULT_ENV_ID,
-    KEYDOOR_ENV_ID,
-    create_keydoor_dqn_env,
-    fixed_layout_source,
+    wandb_from_args,
 )
 from delayed_reward.results.plotting import DEFAULT_ONSET_THRESHOLD, plot_delay_survival
 from delayed_reward.results.saver import create_delay_dir, create_run_dir, create_trial_dir
@@ -39,39 +30,9 @@ from delayed_reward.results.saver import create_delay_dir, create_run_dir, creat
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--env-kind", choices=("empty", "keydoor"), default="empty")
-    parser.add_argument(
-        "--env-id",
-        default=None,
-        help=f"Defaults to {DEFAULT_ENV_ID!r} (empty) or {KEYDOOR_ENV_ID!r} (keydoor)",
-    )
+    add_dqn_args(parser)
     parser.add_argument("--delay", type=int, nargs="+", default=[0])
-    parser.add_argument("--subgoal-reward", type=float, default=0.3)
-    parser.add_argument(
-        "--reward-attribution", choices=("arrival", "origin"), default="arrival"
-    )
-    parser.add_argument(
-        "--step-penalty",
-        type=float,
-        default=0.0,
-        help="Fixed cost subtracted from every step's reward (--env-kind keydoor only)",
-    )
-    parser.add_argument(
-        "--checkpoint-window",
-        type=int,
-        default=100,
-        help="Save/GIF the best deterministic-eval checkpoint from the last N evals",
-    )
-    parser.add_argument(
-        "--eval-every-episodes",
-        type=int,
-        default=20,
-        help="Deterministic eval cadence; pass 0 to disable",
-    )
     parser.add_argument("--trials", type=int, default=10)
-    parser.add_argument("--timesteps", type=int, default=500_000)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--onset-threshold", type=float, default=DEFAULT_ONSET_THRESHOLD)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
@@ -81,10 +42,6 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Existing run directory to resume; completed, matching trials are skipped",
     )
-    parser.add_argument("--wandb", action="store_true", help="Log each trial to Weights & Biases")
-    parser.add_argument("--wandb-project", default="delayed-reward")
-    parser.add_argument("--wandb-entity", default=None)
-    parser.add_argument("--wandb-log-every", type=int, default=1000)
     parser.add_argument(
         "--trial-ids",
         type=int,
@@ -93,120 +50,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run only these trial indices (each < --trials); used by remote launchers",
     )
     parser.add_argument("--no-plot", action="store_true", help="Skip the survival plot")
-    add_layout_args(parser)
-    add_lr_args(parser)
-    add_time_to_optimal_args(parser)
     return parser
 
 
-def _legacy_config_value(saved_config: dict[str, object], key: str) -> object:
-    """Value implied for ``key`` by summaries written before the key existed."""
-    # These predate any choice: constant lr 1e-3, an eval every 20 episodes and
-    # plain DQN were hard-coded defaults for every env kind.
-    training = {
-        "lr_schedule": "constant",
-        "lr_final": None,
-        "eval_every_episodes": 20,
-        "double_dqn": False,
-    }
-    if key in training:
-        return training[key]
-    # Before the schedule horizon existed, schedules annealed over the cap and
-    # there was no optimal-solve criterion or early stop.
-    if key == "schedule_timesteps":
-        return saved_config.get("total_timesteps")
-    if key in ("optimal_steps", "sustain_evals"):
-        return None
-    if key == "stop_on_sustained":
-        return False
-    if saved_config.get("env_kind") != "keydoor":
-        return None
-    return {"layout_randomization": [], "fixed_layout": "seed"}.get(key)
-
-
-def _expected_config(args: argparse.Namespace, env_id: str, delay: int, trial: int) -> dict[str, object]:
-    return {
-        "env_kind": args.env_kind,
-        "env": env_id,
-        "delay": delay,
-        "subgoal_reward": args.subgoal_reward if args.env_kind == "keydoor" else None,
-        "reward_attribution": args.reward_attribution,
-        "step_penalty": args.step_penalty if args.env_kind == "keydoor" else None,
-        "layout_randomization": (
-            layout_from_args(args).names() if args.env_kind == "keydoor" else None
-        ),
-        "fixed_layout": fixed_layout_source(env_id) if args.env_kind == "keydoor" else None,
-        "trial": trial,
-        "seed": args.seed + trial,
-        "total_timesteps": args.timesteps,
-        "max_steps": args.max_steps,
-        "eval_every_episodes": args.eval_every_episodes or None,
-        **lr_config(args.learning_rate, args.lr_schedule, args.lr_final),
-        "double_dqn": args.double_dqn,
-        "schedule_timesteps": args.schedule_timesteps or args.timesteps,
-        "optimal_steps": args.optimal_steps,
-        "sustain_evals": args.sustain_evals if args.optimal_steps is not None else None,
-        "stop_on_sustained": args.stop_on_sustained,
-    }
-
-
-def _run_trial(task: tuple[argparse.Namespace, str, Path, int, int]) -> Path:
-    args, env_id, run_dir, delay, trial = task
-    trial_dir = create_trial_dir(create_delay_dir(run_dir, delay), trial)
-    train_trial(
-        trial=trial,
-        env_id=env_id,
-        seed=args.seed,
-        total_timesteps=args.timesteps,
-        delay=delay,
-        max_steps=args.max_steps,
-        trial_dir=trial_dir,
-        env_kind=args.env_kind,
-        subgoal_reward=args.subgoal_reward,
-        reward_attribution=args.reward_attribution,
-        wandb_enabled=args.wandb,
-        wandb_project=args.wandb_project,
-        wandb_entity=args.wandb_entity,
-        wandb_group=run_dir.name,
-        wandb_log_every=args.wandb_log_every,
-        eval_every_episodes=args.eval_every_episodes or None,
-        step_penalty=args.step_penalty,
-        checkpoint_window=args.checkpoint_window,
-        randomize=layout_from_args(args),
-        eval_episodes=args.eval_episodes,
-        **lr_from_args(args),
-        **time_to_optimal_from_args(args),
-    )
+def _run_trial(task: tuple[DQNTrialConfig, Path, WandbSettings | None]) -> Path:
+    config, run_dir, wandb = task
+    trial_dir = create_trial_dir(create_delay_dir(run_dir, config.env.delay), config.trial)
+    train_trial(config, trial_dir, wandb=wandb)
     return trial_dir
 
 
-def resolve_sweep(args: argparse.Namespace) -> tuple[list[int], list[int], str, Path]:
-    """Validate args and return (delays, trial_ids, env_id, run_dir)."""
+def resolve_sweep(args: argparse.Namespace) -> tuple[DQNTrialConfig, list[int], list[int], Path]:
+    """Validate args and return (config template, delays, trial_ids, run_dir)."""
     delays = list(dict.fromkeys(args.delay))
-    if args.trials < 1 or args.timesteps < 1 or args.workers < 1:
-        raise SystemExit("trials, timesteps, and workers must be >= 1")
+    if args.trials < 1 or args.workers < 1:
+        raise SystemExit("trials and workers must be >= 1")
     if any(delay < 0 for delay in delays):
         raise SystemExit("delay values must be >= 0")
-    if args.max_steps is not None and args.max_steps < 1:
-        raise SystemExit("max-steps must be >= 1")
-    if args.step_penalty < 0 or args.checkpoint_window < 1:
-        raise SystemExit("step-penalty must be >= 0 and checkpoint-window must be >= 1")
     if not 0.0 <= args.onset_threshold <= 1.0:
         raise SystemExit("onset-threshold must be in [0, 1]")
-    randomize = layout_from_args(args)
-    lr_from_args(args)
-    time_to_optimal_from_args(args)
+    template = dqn_config_from_args(args)
     trial_ids = list(dict.fromkeys(args.trial_ids)) if args.trial_ids else list(range(args.trials))
     if any(not 0 <= trial < args.trials for trial in trial_ids):
         raise SystemExit("trial-ids must be in [0, trials)")
-
-    env_id = args.env_id or (KEYDOOR_ENV_ID if args.env_kind == "keydoor" else DEFAULT_ENV_ID)
-    if randomize.any:
-        # Fail here, not inside every worker/sandbox, if the env can't randomize.
-        try:
-            create_keydoor_dqn_env(env_id=env_id, randomize=randomize).close()
-        except ValueError as exc:
-            raise SystemExit(str(exc)) from exc
 
     if args.run_dir is None:
         run_dir = create_run_dir(args.results_dir)
@@ -214,52 +80,43 @@ def resolve_sweep(args: argparse.Namespace) -> tuple[list[int], list[int], str, 
         run_dir = args.run_dir
         if not run_dir.is_dir():
             raise SystemExit(f"run directory does not exist: {run_dir}")
-    return delays, trial_ids, env_id, run_dir
+    return template, delays, trial_ids, run_dir
 
 
 def plan_tasks(
-    args: argparse.Namespace,
-    env_id: str,
+    template: DQNTrialConfig,
     run_dir: Path,
     delays: list[int],
     trial_ids: list[int],
-) -> tuple[list[tuple[int, int]], int]:
-    """Return pending (delay, trial) pairs and the count of completed ones skipped.
+) -> tuple[list[DQNTrialConfig], int]:
+    """Return the pending trial configs and the count of completed ones skipped.
 
     Completed trials must match the requested settings. Leftover directories of
     incomplete trials are moved under ``run_dir/_incomplete``.
     """
-    pending: list[tuple[int, int]] = []
+    pending: list[DQNTrialConfig] = []
     skipped = 0
     for delay in delays:
         delay_dir = create_delay_dir(run_dir, delay)
         for trial in trial_ids:
-            summary_path = delay_dir / f"trial_{trial}" / "summary.json"
+            config = template.for_trial(delay=delay, trial=trial)
+            trial_dir = delay_dir / f"trial_{trial}"
+            summary_path = trial_dir / "summary.json"
             if summary_path.exists():
-                saved_config = json.loads(summary_path.read_text()).get("config", {})
-                expected = _expected_config(args, env_id, delay, trial)
-                mismatches = {}
-                for key, value in expected.items():
-                    saved = saved_config.get(key, _legacy_config_value(saved_config, key))
-                    if saved != value:
-                        mismatches[key] = (saved, value)
+                saved = json.loads(summary_path.read_text()).get("config", {})
+                mismatches = config_mismatches(saved, config)
                 if mismatches:
-                    raise SystemExit(
-                        f"refusing to mix settings in {summary_path}: {mismatches}"
-                    )
+                    raise SystemExit(f"refusing to mix settings in {summary_path}: {mismatches}")
                 skipped += 1
-            else:
-                trial_dir = delay_dir / f"trial_{trial}"
-                if trial_dir.exists():
-                    # Keep artifacts from interrupted/failed trials, then let
-                    # train_trial create a clean directory at the usual path.
-                    backup_root = run_dir / "_incomplete"
-                    backup_root.mkdir(exist_ok=True)
-                    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
-                    trial_dir.rename(
-                        backup_root / f"delay_{delay}_trial_{trial}_{stamp}"
-                    )
-                pending.append((delay, trial))
+                continue
+            if trial_dir.exists():
+                # Keep artifacts from interrupted/failed trials, then let
+                # train_trial create a clean directory at the usual path.
+                backup_root = run_dir / "_incomplete"
+                backup_root.mkdir(exist_ok=True)
+                stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+                trial_dir.rename(backup_root / f"delay_{delay}_trial_{trial}_{stamp}")
+            pending.append(config)
     return pending, skipped
 
 
@@ -329,21 +186,22 @@ def summarize_time_to_optimal(run_dir: Path) -> Path | None:
 
 def main() -> None:
     args = build_parser().parse_args()
-    delays, trial_ids, env_id, run_dir = resolve_sweep(args)
-    pending, skipped = plan_tasks(args, env_id, run_dir, delays, trial_ids)
-    tasks = [(args, env_id, run_dir, delay, trial) for delay, trial in pending]
+    template, delays, trial_ids, run_dir = resolve_sweep(args)
+    pending, skipped = plan_tasks(template, run_dir, delays, trial_ids)
+    wandb = wandb_from_args(args, group=run_dir.name)
 
     print(f"RUN_DIR {run_dir.resolve()}", flush=True)
     print(
-        f"ENV {env_id} DELAYS {delays} TRIALS {args.trials} WORKERS {args.workers} "
-        f"RANDOMIZE {args.randomize or 'none'} PENDING {len(tasks)} SKIPPED {skipped}",
+        f"ENV {template.env.env_id} DELAYS {delays} TRIALS {args.trials} WORKERS {args.workers} "
+        f"RANDOMIZE {args.randomize or 'none'} PENDING {len(pending)} SKIPPED {skipped}",
         flush=True,
     )
     failures = []
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(_run_trial, task): task[3:] for task in tasks}
+        futures = {pool.submit(_run_trial, (config, run_dir, wandb)): config for config in pending}
         for future in as_completed(futures):
-            delay, trial = futures[future]
+            config = futures[future]
+            delay, trial = config.env.delay, config.trial
             try:
                 trial_dir = future.result()
             except Exception as exc:
