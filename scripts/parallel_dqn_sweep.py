@@ -17,7 +17,16 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from delayed_reward.dqn_experiment import add_layout_args, layout_from_args, train_trial
+from delayed_reward.dqn_experiment import (
+    add_layout_args,
+    add_lr_args,
+    add_time_to_optimal_args,
+    layout_from_args,
+    lr_config,
+    lr_from_args,
+    time_to_optimal_from_args,
+    train_trial,
+)
 from delayed_reward.environments.factory import (
     DEFAULT_ENV_ID,
     KEYDOOR_ENV_ID,
@@ -85,11 +94,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--no-plot", action="store_true", help="Skip the survival plot")
     add_layout_args(parser)
+    add_lr_args(parser)
+    add_time_to_optimal_args(parser)
     return parser
 
 
 def _legacy_config_value(saved_config: dict[str, object], key: str) -> object:
     """Value implied for ``key`` by summaries written before the key existed."""
+    # These predate any choice: constant lr 1e-3, an eval every 20 episodes and
+    # plain DQN were hard-coded defaults for every env kind.
+    training = {
+        "lr_schedule": "constant",
+        "lr_final": None,
+        "eval_every_episodes": 20,
+        "double_dqn": False,
+    }
+    if key in training:
+        return training[key]
+    # Before the schedule horizon existed, schedules annealed over the cap and
+    # there was no optimal-solve criterion or early stop.
+    if key == "schedule_timesteps":
+        return saved_config.get("total_timesteps")
+    if key in ("optimal_steps", "sustain_evals"):
+        return None
+    if key == "stop_on_sustained":
+        return False
     if saved_config.get("env_kind") != "keydoor":
         return None
     return {"layout_randomization": [], "fixed_layout": "seed"}.get(key)
@@ -111,6 +140,13 @@ def _expected_config(args: argparse.Namespace, env_id: str, delay: int, trial: i
         "seed": args.seed + trial,
         "total_timesteps": args.timesteps,
         "max_steps": args.max_steps,
+        "eval_every_episodes": args.eval_every_episodes or None,
+        **lr_config(args.learning_rate, args.lr_schedule, args.lr_final),
+        "double_dqn": args.double_dqn,
+        "schedule_timesteps": args.schedule_timesteps or args.timesteps,
+        "optimal_steps": args.optimal_steps,
+        "sustain_evals": args.sustain_evals if args.optimal_steps is not None else None,
+        "stop_on_sustained": args.stop_on_sustained,
     }
 
 
@@ -138,6 +174,8 @@ def _run_trial(task: tuple[argparse.Namespace, str, Path, int, int]) -> Path:
         checkpoint_window=args.checkpoint_window,
         randomize=layout_from_args(args),
         eval_episodes=args.eval_episodes,
+        **lr_from_args(args),
+        **time_to_optimal_from_args(args),
     )
     return trial_dir
 
@@ -156,6 +194,8 @@ def resolve_sweep(args: argparse.Namespace) -> tuple[list[int], list[int], str, 
     if not 0.0 <= args.onset_threshold <= 1.0:
         raise SystemExit("onset-threshold must be in [0, 1]")
     randomize = layout_from_args(args)
+    lr_from_args(args)
+    time_to_optimal_from_args(args)
     trial_ids = list(dict.fromkeys(args.trial_ids)) if args.trial_ids else list(range(args.trials))
     if any(not 0 <= trial < args.trials for trial in trial_ids):
         raise SystemExit("trial-ids must be in [0, trials)")
@@ -223,6 +263,70 @@ def plan_tasks(
     return pending, skipped
 
 
+def summarize_time_to_optimal(run_dir: Path) -> Path | None:
+    """Collect each trial's ``time_to_optimal`` into ``run_dir/time_to_optimal.json``.
+
+    Trials that never reached the sustained criterion are right-censored at
+    their cap: they are listed and counted, but their cap is never reported as
+    a solve time. Returns None when no trial recorded the criterion.
+    """
+    by_delay: dict[str, dict[str, object]] = {}
+    for summary_path in sorted(run_dir.glob("delay_*/trial_*/summary.json")):
+        record = json.loads(summary_path.read_text()).get("time_to_optimal")
+        if record is None:
+            continue
+        delay = summary_path.parent.parent.name.removeprefix("delay_")
+        trial = int(summary_path.parent.name.removeprefix("trial_"))
+        entry = by_delay.setdefault(delay, {"trials": {}})
+        entry["trials"][trial] = {
+            key: record[key]
+            for key in (
+                "first_optimal_timestep",
+                "sustained_optimal_timestep",
+                "censored",
+                "censor_timestep",
+            )
+        }
+    if not by_delay:
+        return None
+    for entry in by_delay.values():
+        trials = dict(sorted(entry["trials"].items()))
+        entry["trials"] = trials
+        solved = sorted(
+            t["sustained_optimal_timestep"] for t in trials.values() if not t["censored"]
+        )
+        first = sorted(
+            t["first_optimal_timestep"]
+            for t in trials.values()
+            if t["first_optimal_timestep"] is not None
+        )
+        n = len(trials)
+        entry.update(
+            {
+                "n_trials": n,
+                "n_sustained": len(solved),
+                "n_censored": n - len(solved),
+                "n_first_optimal": len(first),
+                # Order statistic over all trials; censored trials rank last, so
+                # the median exists only when more than half of them solved.
+                "median_sustained_timestep": (
+                    solved[(n - 1) // 2] if len(solved) > (n - 1) // 2 else None
+                ),
+                "sustained_timesteps_solved": solved,
+                "first_optimal_timesteps": first,
+            }
+        )
+    out = run_dir / "time_to_optimal.json"
+    out.write_text(json.dumps(dict(sorted(by_delay.items(), key=lambda kv: int(kv[0]))), indent=2) + "\n")
+    for delay, entry in by_delay.items():
+        print(
+            f"TIME_TO_OPTIMAL delay={delay} sustained={entry['n_sustained']}/{entry['n_trials']} "
+            f"censored={entry['n_censored']} median={entry['median_sustained_timestep']}",
+            flush=True,
+        )
+    return out
+
+
 def main() -> None:
     args = build_parser().parse_args()
     delays, trial_ids, env_id, run_dir = resolve_sweep(args)
@@ -260,6 +364,7 @@ def main() -> None:
             onset_threshold=args.onset_threshold,
         )
         print(f"PLOT {plot_path.resolve()}", flush=True)
+    summarize_time_to_optimal(run_dir)
     if failures:
         raise SystemExit(f"{len(failures)} trial(s) failed; resume with --run-dir")
     print(f"All DQN trials finished under {run_dir.resolve()}", flush=True)

@@ -390,6 +390,7 @@ def main() -> None:
             run_dir, smooth_window=100, onset_threshold=sweep_args.onset_threshold
         )
         print(f"PLOT {plot_path.resolve()}", flush=True)
+    parallel_dqn_sweep.summarize_time_to_optimal(run_dir)
     if failures:
         raise SystemExit(f"{len(failures)} trial(s) failed; resume with --run-dir {run_dir}")
     print(f"All DQN trials finished under {run_dir.resolve()}", flush=True)

@@ -47,8 +47,12 @@ def save_metrics(
     steps: Sequence[int],
     config: Mapping[str, object],
     window: int = 100,
+    extra: Mapping[str, object] | None = None,
 ) -> None:
-    """Write per-episode CSV metrics and a JSON summary into ``run_dir``."""
+    """Write per-episode CSV metrics and a JSON summary into ``run_dir``.
+
+    ``extra`` adds top-level keys to ``summary.json`` (e.g. ``time_to_optimal``).
+    """
     metrics_path = run_dir / "metrics.csv"
     with metrics_path.open("w", newline="") as fh:
         writer = csv.writer(fh)
@@ -65,6 +69,7 @@ def save_metrics(
         "final_mean_steps": (
             sum(steps[-window:]) / min(window, len(steps)) if steps else None
         ),
+        **(extra or {}),
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 
@@ -76,8 +81,11 @@ def save_eval_metrics(
     train_timesteps: Sequence[int],
     returns: Sequence[float],
     steps: Sequence[float],
+    optimal: Sequence[bool] | None = None,
 ) -> None:
     """Write periodic exploration-off evaluation results to ``eval_metrics.csv``.
+
+    With ``optimal`` (one flag per checkpoint), an ``optimal`` column is added.
 
     Unlike ``metrics.csv`` (one row per training episode, taken while the
     agent is still exploring), this is one row per evaluation checkpoint:
@@ -86,8 +94,13 @@ def save_eval_metrics(
     metrics_path = run_dir / "eval_metrics.csv"
     with metrics_path.open("w", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["train_episode", "train_timestep", "return", "steps"])
-        for row in zip(train_episodes, train_timesteps, returns, steps, strict=True):
+        header = ["train_episode", "train_timestep", "return", "steps"]
+        columns = [train_episodes, train_timesteps, returns, steps]
+        if optimal is not None:
+            header.append("optimal")
+            columns.append([int(flag) for flag in optimal])
+        writer.writerow(header)
+        for row in zip(*columns, strict=True):
             writer.writerow(row)
 
 
