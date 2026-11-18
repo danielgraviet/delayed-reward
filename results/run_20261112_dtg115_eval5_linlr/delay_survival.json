@@ -1,0 +1,59 @@
+{
+  "onset_threshold": 0.5,
+  "smooth_window": 100,
+  "n_trials_by_delay": {
+    "0": 10
+  },
+  "onset_episodes_by_delay": {
+    "0": [
+      202,
+      null,
+      161,
+      318,
+      379,
+      164,
+      232,
+      144,
+      202,
+      138
+    ]
+  },
+  "n_passed_by_delay": {
+    "0": 9
+  },
+  "pass_fraction_by_delay": {
+    "0": 0.9
+  },
+  "onset_mean_by_delay": {
+    "0": 215.55555555555554
+  },
+  "onset_std_by_delay": {
+    "0": 77.90037956135046
+  },
+  "sustained_onset_episodes_by_delay": {
+    "0": [
+      202,
+      null,
+      161,
+      null,
+      379,
+      166,
+      null,
+      416,
+      202,
+      138
+    ]
+  },
+  "n_sustained_passed_by_delay": {
+    "0": 7
+  },
+  "sustained_pass_fraction_by_delay": {
+    "0": 0.7
+  },
+  "sustained_onset_mean_by_delay": {
+    "0": 237.71428571428572
+  },
+  "sustained_onset_std_by_delay": {
+    "0": 103.69559060154911
+  }
+}
